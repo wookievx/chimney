@@ -45,6 +45,9 @@ object dsl {
 
     def transform: To =
       macro ChimneyBlackboxMacros.transformImpl[From, To, C]
+
+    def printTransformationCode: TransformerInto[From, To, C] =
+      macro ChimneyBlackboxMacros.printTransformationCodeImpl[From, To, C]
   }
 
   implicit class PatcherOps[T](val obj: T) extends AnyVal {

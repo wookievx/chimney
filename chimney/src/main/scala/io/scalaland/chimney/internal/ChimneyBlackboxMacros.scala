@@ -15,6 +15,12 @@ class ChimneyBlackboxMacros(val c: blackbox.Context)
     c.Expr[To](expandTansform[From, To, C])
   }
 
+  def printTransformationCodeImpl[From: c.WeakTypeTag, To: c.WeakTypeTag, C: c.WeakTypeTag]: c.Tree = {
+    import c.universe._
+    val code = expandTansform[From, To, C].toString()
+    q"{println($code); ${c.prefix}}"
+  }
+
   def deriveTransformerImpl[From: c.WeakTypeTag, To: c.WeakTypeTag]
     : c.Expr[io.scalaland.chimney.Transformer[From, To]] = {
     genTransformer[From, To](Config())

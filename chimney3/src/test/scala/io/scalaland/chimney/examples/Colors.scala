@@ -1,13 +1,13 @@
 package io.scalaland.chimney.examples
 
-package colors1 {
+object colors1 {
   sealed trait Color
   case object Red extends Color
   case object Green extends Color
   case object Blue extends Color
 }
 
-package colors2 {
+object colors2 {
   sealed trait Color
   case object Blue extends Color
   case object Green extends Color
@@ -15,7 +15,7 @@ package colors2 {
   case object Black extends Color
 }
 
-package colors3 {
+object colors3 {
   sealed trait Color
   sealed trait SimpleColor extends Color
   sealed trait ComplexedColor extends Color

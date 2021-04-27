@@ -1,6 +1,6 @@
 package io.scalaland.chimney.examples
 
-package shapes1 {
+object shapes1 {
 
   case class Point(x: Int, y: Int)
 
@@ -9,7 +9,7 @@ package shapes1 {
   case class Rectangle(p1: Point, p2: Point) extends Shape
 }
 
-package shapes2 {
+object shapes2 {
 
   case class Point(x: Int, y: Int)
 
@@ -17,7 +17,7 @@ package shapes2 {
   case class Polygon(points: List[Point]) extends Shape
 }
 
-package shapes3 {
+object shapes3 {
 
   case class Point(x: Double, y: Double)
 
@@ -26,7 +26,7 @@ package shapes3 {
   case class Rectangle(p1: Point, p2: Point) extends Shape
 }
 
-package shapes4 {
+object shapes4 {
 
   case class Point(x: Double, y: Double)
 
@@ -40,7 +40,7 @@ package shapes4 {
   case class Rectangle(p1: Point, p2: Point) extends FourAnglesShape
 }
 
-package shapes5 {
+object shapes5 {
   case class Point(x: Double, y: Double)
 
   sealed trait Shape

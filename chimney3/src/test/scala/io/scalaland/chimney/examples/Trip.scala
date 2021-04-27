@@ -1,6 +1,6 @@
 package io.scalaland.chimney.examples
 
-package trip {
+object trip {
 
   case class PersonForm(name: String, age: String, height: String)
   case class Person(name: String, age: Int, height: Double)

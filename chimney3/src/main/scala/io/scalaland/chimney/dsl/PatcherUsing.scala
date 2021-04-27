@@ -1,9 +1,11 @@
-package io.scalaland.chimney.dsl
+package io.scalaland.chimney
+package dsl
 
 import io.scalaland.chimney.internal.EnablePatcherConfig
 import io.scalaland.chimney.internal.PatcherCfg
 import io.scalaland.chimney.internal.PatcherCfg._
 import io.scalaland.chimney.internal.derived.PatcherDerive
+import scala.compiletime.summonFrom
 
 /** Provides operations to customize patcher logic for specific
   * object value and patch value.
@@ -34,6 +36,12 @@ end PatcherUsing
 
 extension [T](obj: T)
   inline def using[P](patch: P): PatcherUsing[T, P, EmptyTuple] = PatcherUsing(obj, patch)
+  inline def patchUsing[P](patch: P): T = 
+    summonFrom {
+      case p: Patcher[T, P] => p.patch(obj, patch)
+      case _ => PatcherDerive.derived[T, P, EmptyTuple, ""].patch(obj, patch)
+    }
+  end patchUsing
 
 /** Provides operations to customize patcher logic for specific
   * object value and multiple patch values (for efficient data processing with patcher, no copying multiple updates at once).

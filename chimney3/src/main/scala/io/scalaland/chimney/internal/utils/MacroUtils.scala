@@ -1,7 +1,7 @@
 package io.scalaland.chimney.internal.utils
 
 import scala.quoted.{given, *}
-import deriving._, compiletime._
+import deriving.*, compiletime.*
 
 object MacroUtils:
 

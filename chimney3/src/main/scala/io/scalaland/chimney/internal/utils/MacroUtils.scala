@@ -1,6 +1,6 @@
 package io.scalaland.chimney.internal.utils
 
-import scala.quoted.{given, *}
+import scala.quoted.*
 import deriving.*, compiletime.*
 
 object MacroUtils:
@@ -61,25 +61,20 @@ object MacroUtils:
 
   def extractNameFromSelectorImpl[To: Type, T: Type](code: Expr[To => T])(using Quotes): Expr[String] = 
     import quotes.reflect._
-    val extractors = new Extractors
     code.asTerm match
-     case extractors.InlinedLambda(_, Select(_, name)) => Expr(name)
-     case t => report.throwError(s"Illegal argument to extractor: ${code.show}, in tasty: $t")
+     case InlinedLambda(List(ValDef(identVal, _, _)), t@Select(Ident(identExtract), name)) if identVal == identExtract => 
+      Expr(name)
+     case t => report.throwError(s"Illegal selector: ${code.show}")
 
   
-  class Extractors(using val quotes: Quotes):
-    //attempt to strip away consecutive inlines in AST and extract only final lambda
-    import quotes.reflect._
-
-    object InlinedLambda:
-      def unapply(arg: Term): Option[(List[ValDef], Term)] = 
-        arg match
-          case Inlined(_, _, Lambda(vals, term)) => Some((vals, term))
-          case Inlined(_, _, nested) => InlinedLambda.unapply(nested)
-          case t => None
-    end InlinedLambda
-    
-  end Extractors
+  object InlinedLambda:
+    def unapply(using Quotes)(arg: quotes.reflect.Term): Option[(List[quotes.reflect.ValDef], quotes.reflect.Term)] = 
+      import quotes.reflect._
+      arg match
+        case Inlined(_, _, Lambda(vals, term)) => Some((vals, term))
+        case Inlined(_, _, nested) => InlinedLambda.unapply(nested)
+        case t => None
+  end InlinedLambda
 
   inline def debug[T](inline any: T): T = ${ printImplMacro('any) }
 

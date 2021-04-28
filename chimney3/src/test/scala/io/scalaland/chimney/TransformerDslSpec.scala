@@ -2,6 +2,7 @@ package io.scalaland.chimney
 
 import io.scalaland.chimney.dsl._
 import io.scalaland.chimney.examples._
+import io.scalaland.chimney.internal.utils.MacroUtils
 import utest._
 
 object TransformerDslSpec extends TestSuite {
@@ -72,14 +73,14 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldConst(_.z._1, 0.0)
                   .transform
                 """)
-              .check("", "Invalid selector!")
+              .check("", "Illegal selector: ((_$6: Foo) => _$6.z._1)")
 
             compileError("""Bar(3, (3.14, 3.14))
                   .into[Foo]
                   .withFieldConst(_.y + "abc", "pi")
                   .transform
                 """)
-              .check("", "Invalid selector!")
+              .check("", "Illegal selector: ((_$7: Foo) => _$7.y.+(\"abc\"))")
 
             compileError("""
                 val haveY = HaveY("")
@@ -88,7 +89,7 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldConst(cc => haveY.y, "pi")
                   .transform
                 """)
-              .check("", "Invalid selector!")
+              .check("", "Illegal selector: ((cc: Foo) => haveY.y)")
           }
 
           "fill the field with provided generator function" - {
@@ -114,14 +115,14 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldComputed(_.z._1, _.z._1 * 10.0)
                   .transform
                 """)
-                .check("", "Invalid selector!")
+                .check("", "Illegal selector: ((_$10: Foo) => _$10.z._1)")
 
               compileError("""Bar(3, (3.14, 3.14))
                   .into[Foo]
                   .withFieldComputed(_.y + "abc", _.x.toString)
                   .transform
                 """)
-                .check("", "Invalid selector!")
+                .check("", "Illegal selector: ((_$12: Foo) => _$12.y.+(\"abc\"))")
 
               compileError("""
                 val haveY = HaveY("")
@@ -130,7 +131,7 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldComputed(cc => haveY.y, _.x.toString)
                   .transform
                 """)
-                .check("", "Invalid selector!")
+                .check("", "Illegal selector: ((cc: Foo) => haveY.y)")
             }
 
           }

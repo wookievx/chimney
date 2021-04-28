@@ -275,6 +275,110 @@ object TransformerDslSpec extends TestSuite {
       // }
     }
 
+    "transform with rename" - {
+
+      "between different types: correct" - {
+        TransformWithRenameSpecs.`between different types: correct`
+      }
+
+      "between different types: incorrect" - {
+        TransformWithRenameSpecs.`between different types: incorrect`
+      }
+
+      // "between different types: without implicit" - {
+      //   compileError("""
+      //       val user: User = User(1, "Kuba", None)
+      //       user.into[UserPL].withFieldRenamed(_.name, _.imie)
+      //           .withFieldRenamed(_.age, _.wiek)
+      //           .transform
+      //     """)
+      //     .check("", "Chimney can't derive transformation from User to UserPL")
+      // }
+    }
+
+    "support relabelling of fields" - {
+
+      // again not possible to elegantly check this
+
+      // "not compile if relabelling modifier is not provided" - {
+
+      //   compileError("""Foo(10, "something").transformInto[Bar]""")
+      //     .check("", "Chimney can't derive transformation from Foo to Bar")
+      // }
+
+      "relabel fields with relabelling modifier" - {
+        RelabelingOfFieldSpec.`relabel fields with relabelling modifier`
+      }
+
+      "not compile if relabelling selectors are invalid" - {
+        import RelabelingOfFieldSpec._
+
+        compileError("""
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(_.y + "abc", _.z)
+              .transform
+          """)
+          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))""")
+
+        compileError("""
+            val haveY = HaveY("")
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(cc => haveY.y, _.z)
+              .transform
+          """)
+          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)""")
+
+        compileError("""
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(_.y, _.z + "abc")
+              .transform
+          """)
+          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => x.z.+("abc")""")
+
+        compileError("""
+            val haveZ = HaveZ("")
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(_.y, cc => haveZ.z)
+              .transform
+          """)
+          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => haveZ.z)""")
+
+        compileError("""
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(_.y + "abc", _.z + "abc")
+              .transform
+          """)
+          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))""")
+
+        compileError("""
+            val haveY = HaveY("")
+            val haveZ = HaveZ("")
+            Foo(10, "something")
+              .into[Bar]
+              .withFieldRenamed(cc => haveY.y, cc => haveZ.z)
+              .transform
+          """)
+          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)""")
+      }
+
+      // again not possible to elegantly check this
+
+      // "not compile if relabelled - a wrong way" - {
+
+      //   compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform""")
+      //     .check("", "Chimney can't derive transformation from Foo to Bar")
+
+      //   compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.x, _.z).transform""")
+      //     .check("", "Chimney can't derive transformation from Foo to Bar")
+      // }
+
+    }
+
   }
 
   //workaround scala3 bugs, hopefully will be fixed one day
@@ -322,6 +426,49 @@ object TransformerDslSpec extends TestSuite {
         def transform(from: Foo): Bar = Bar(from.x, 333L)
       
       Foo(333).transformInto[Bar] ==> Bar(333, 333L)
+
+  }
+
+  object TransformWithRenameSpecs {
+    case class User(id: Int, name: String, age: Option[Int])
+    case class UserPL(id: Int, imie: String, wiek: Either[Unit, Int])
+    def ageToWiekTransformer: Transformer[Option[Int], Either[Unit, Int]] =
+      new Transformer[Option[Int], Either[Unit, Int]] {
+        def transform(obj: Option[Int]): Either[Unit, Int] =
+         obj.fold[Either[Unit, Int]](Left(()))(Right.apply)
+      }
+
+    def `between different types: correct` =
+      given trans: Transformer[Option[Int], Either[Unit, Int]] = ageToWiekTransformer
+
+      val user: User = User(1, "Kuba", Some(28))
+      val userPl = UserPL(1, "Kuba", Right(28))
+      user
+        .into[UserPL]
+        .withFieldRenamed(_.name, _.imie)
+        .withFieldRenamed(_.age, _.wiek)
+        .transform ==> userPl
+
+    def `between different types: incorrect` =  
+      given trans: Transformer[Option[Int], Either[Unit, Int]] = ageToWiekTransformer
+
+      val user: User = User(1, "Kuba", None)
+      val userPl = UserPL(1, "Kuba", Left(()))
+      user
+        .into[UserPL]
+        .withFieldRenamed(_.name, _.imie)
+        .withFieldRenamed(_.age, _.wiek)
+        .transform ==> userPl
+    
+  }
+
+  object RelabelingOfFieldSpec {
+    case class Foo(x: Int, y: String)
+    case class Bar(x: Int, z: String)
+    case class HaveY(y: String)
+    case class HaveZ(z: String)
+
+    def `relabel fields with relabelling modifier` = Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
 
   }
 

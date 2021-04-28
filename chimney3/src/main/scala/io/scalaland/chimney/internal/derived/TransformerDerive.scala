@@ -235,7 +235,7 @@ object DeriveProduct:
           case _: (_ *: sourceFields, _ *: sourceTypes) =>
             findInSource[From, To, Field, sourceFields, Tpe, sourceTypes, Pos + 1](config)(outputArray, inputArray, typedInput, targetPosition)
           case _: (EmptyTuple, _) =>
-            specialExtractors[flags, path, From, To, Field, Unit](c, typedInput) { extracted =>
+            specialExtractors[flags, path, From, To, Field, Tpe, Unit](c, typedInput) { extracted =>
               outputArray(targetPosition) = extracted
             }
   end findInSource
@@ -289,18 +289,26 @@ object DeriveProduct:
           case _: (_ *: sourceFields, _ *: sourceTypes) =>
             findInSourceWithF[F, From, To, Field, sourceFields, Tpe, sourceTypes, Pos + 1](config)(outputArray, inputArray, typedInput, targetPosition)
           case _: (EmptyTuple, _) =>
-            specialExtractors[flags, path, From, To, Field, F[Unit]](c, typedInput) { extracted =>
+            specialExtractors[flags, path, From, To, Field, Tpe, F[Unit]](c, typedInput) { extracted =>
               sup.map(outputArray, outputArray => outputArray(targetPosition) = extracted)
             }
   end findInSourceWithF
 
-  private inline def specialExtractors[Flags <: Tuple, Path <: String, From, To, Field, Res](inline config: TypeDeriveConfig[_, Flags, Path], from: From)(inline onAccess: Any => Res): Res =
+  private inline def specialExtractors[Flags <: Tuple, Path <: String, From, To, Field, Tpe, Res](inline config: TypeDeriveConfig[_, Flags, Path], from: From)(inline onAccess: Any => Res): Res =
     inline extractDefault[Flags, To, Field](config) match
       case Some(value) => onAccess(value)
       case None => 
         inline extractByMethod[Flags, From, Field](config, from) match
           case Some(value) => onAccess(value)
-          case None => error(constValue["Unable to find default value in target or method of a name (or those options are disabled), when deriving at: " Concat Path])
+          case None => 
+            inline if constValue[HasAFlag[Flags, TransformerFlag.OptionDefaultsToNone]] then
+              inline erasedValue[Tpe] match
+                case _: Option[?] =>
+                  onAccess(None)
+                case _ =>
+                  error(constValue["Unable to find default value in target or method of a name (or those options are disabled), when deriving at: " Concat Path])    
+            else
+              error(constValue["Unable to find default value in target or method of a name (or those options are disabled), when deriving at: " Concat Path])
   end specialExtractors
 
   private transparent inline def extractDefault[Flags <: Tuple, To, Field](inline config: TypeDeriveConfig[_, Flags, _]) =

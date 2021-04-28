@@ -144,5 +144,5 @@ final class TransformerInto[From, To, Config <: Tuple, Flags <: Tuple](
 end TransformerInto
 
 extension[From](source: From)
-  inline def into[To]: TransformerInto[From, To, EmptyTuple, EmptyTuple] =
-    TransformerInto(source, defaultDefinition[From, To])
+  inline def into[To]: TransformerInto[From, To, EmptyTuple, TransformerFlag.DefaultValues *: EmptyTuple] =
+    TransformerInto(source, defaultDefinitionWithFlags[From, To, TransformerFlag.DefaultValues *: EmptyTuple])

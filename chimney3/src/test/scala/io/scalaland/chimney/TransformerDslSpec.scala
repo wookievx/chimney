@@ -3,6 +3,7 @@ package io.scalaland.chimney
 import io.scalaland.chimney.dsl._
 import io.scalaland.chimney.examples._
 import io.scalaland.chimney.internal.utils.MacroUtils
+import io.scalaland.chimney.internal.TransformerFlag
 import utest._
 
 object TransformerDslSpec extends TestSuite {
@@ -138,6 +139,38 @@ object TransformerDslSpec extends TestSuite {
 
         }
 
+        //compilation failure specs are not possible at this time, when compilation error is reported deep inside inlined code it is emitted at compiletime
+        "support default values for Options" - {
+
+          "use None when .enableOptionDefaultsToNone" - {
+            fooToFoobarOptDefault ==> Foobar("foo", None)
+          }
+
+          // "not compile if .enableOptionDefaultsToNone is missing" - {
+          //   compileError("""SomeFoo("foo").into[Foobar].transform ==> Foobar("foo", None)""")
+          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar")
+          // }
+
+          "target has default value, but default values are disabled and .enableOptionDefaultsToNone" - {
+            fooToFoobar2OptDefNone ==> Foobar2("foo", None)
+          }
+
+          "not use None as default when other default value is set" - {
+            fooToFoobar2NoOptDef ==> Foobar2("foo", Some(42))
+            fooToFoobar2PrederDefault ==> Foobar2("foo", Some(42))
+          }
+
+          // "not compile if default value is missing and no .enableOptionDefaultsToNone" - {
+          //   compileError("""SomeFoo("foo").into[Foobar].transform""")
+          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar")
+          // }
+
+          // "not compile if default values are disabled and no .enableOptionDefaultsToNone" - {
+          //   compileError("""SomeFoo("foo").into[Foobar2].disableDefaultValues.transform""")
+          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar2")
+          // }
+        }
+
       }
 
     }
@@ -145,7 +178,15 @@ object TransformerDslSpec extends TestSuite {
   }
 
 
-  
+  //workaround scala3 bugs, hopefully will be fixed one day
+  case class SomeFoo(x: String)
+  case class Foobar(x: String, y: Option[Int])
+  case class Foobar2(x: String, y: Option[Int] = Some(42))
+
+  lazy val fooToFoobarOptDefault = SomeFoo("foo").into[Foobar].enableOptionDefaultsToNone.transform
+  lazy val fooToFoobar2OptDefNone = SomeFoo("foo").into[Foobar2].disableDefaultValues.enableOptionDefaultsToNone.transform
+  lazy val fooToFoobar2NoOptDef = SomeFoo("foo").into[Foobar2].transform
+  lazy val fooToFoobar2PrederDefault = SomeFoo("foo").into[Foobar2].enableOptionDefaultsToNone.transform
 
 }
 

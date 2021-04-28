@@ -74,14 +74,14 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldConst(_.z._1, 0.0)
                   .transform
                 """)
-              .check("", "Illegal selector: ((_$6: Foo) => _$6.z._1)")
+              .check("", "Illegal selector: ((x: Foo) => x.z._1)")
 
             compileError("""Bar(3, (3.14, 3.14))
                   .into[Foo]
                   .withFieldConst(_.y + "abc", "pi")
                   .transform
                 """)
-              .check("", "Illegal selector: ((_$7: Foo) => _$7.y.+(\"abc\"))")
+              .check("", "Illegal selector: ((x: Foo) => x.y.+(\"abc\"))")
 
             compileError("""
                 val haveY = HaveY("")
@@ -116,14 +116,14 @@ object TransformerDslSpec extends TestSuite {
                   .withFieldComputed(_.z._1, _.z._1 * 10.0)
                   .transform
                 """)
-                .check("", "Illegal selector: ((_$10: Foo) => _$10.z._1)")
+                .check("", "Illegal selector: ((x: Foo) => x.z._1)")
 
               compileError("""Bar(3, (3.14, 3.14))
                   .into[Foo]
                   .withFieldComputed(_.y + "abc", _.x.toString)
                   .transform
                 """)
-                .check("", "Illegal selector: ((_$12: Foo) => _$12.y.+(\"abc\"))")
+                .check("", "Illegal selector: ((x: Foo) => x.y.+(\"abc\"))")
 
               compileError("""
                 val haveY = HaveY("")
@@ -171,12 +171,111 @@ object TransformerDslSpec extends TestSuite {
           // }
         }
 
+        "fill the field with provided generator function" - {
+
+          "pass when selector is valid" - {
+
+            Bar(3, (3.14, 3.14))
+              .into[Foo]
+              .withFieldComputed(_.y, _.x.toString)
+              .transform ==>
+              Foo(3, "3", (3.14, 3.14))
+
+            Bar(3, (3.14, 3.14))
+              .into[Foo]
+              .withFieldComputed(cc => cc.y, _.x.toString)
+              .transform ==>
+              Foo(3, "3", (3.14, 3.14))
+          }
+
+          "not compile when selector is invalid" - {
+
+            compileError("""Bar(3, (3.14, 3.14))
+                  .into[Foo]
+                  .withFieldComputed(_.y, _.x.toString)
+                  .withFieldComputed(_.z._1, _.z._1 * 10.0)
+                  .transform
+                """)
+              .check("", "Illegal selector: ((x: Foo) => x.z._1)")
+
+            compileError("""Bar(3, (3.14, 3.14))
+                  .into[Foo]
+                  .withFieldComputed(_.y + "abc", _.x.toString)
+                  .transform
+                """)
+              .check("", "Illegal selector: ((x: Foo) => x.y.+(\"abc\"))")
+
+            compileError("""
+                val haveY = HaveY("")
+                Bar(3, (3.14, 3.14))
+                  .into[Foo]
+                  .withFieldComputed(cc => haveY.y, _.x.toString)
+                  .transform
+                """)
+              .check("", "Illegal selector: ((cc: Foo) => haveY.y)")
+          }
+        }
+
       }
 
     }
 
-  }
+    "support default parameters" - {
 
+      "use default parameter value" - {
+
+        "field does not exists - the source" - {
+          DefaultSupportSpecs.`field does not exists - the source-single`
+          DefaultSupportSpecs.`field does not exists - the source-sequence`
+        }
+
+        "field does not exists - nested object" - {
+          DefaultSupportSpecs.`field does not exists - nested object`
+        }
+      }
+
+      "not use default parameter value" - {
+
+        "field exists - the source" - {
+          DefaultSupportSpecs.`field exists - the source-single`
+          DefaultSupportSpecs.`field exists - the source-sequence`
+        }
+
+        "another modifier is provided" - {
+          DefaultSupportSpecs.`another modifier is provided`
+        }
+
+        "default values are disabled and another modifier is provided" - {
+          DefaultSupportSpecs.`default values are disabled and another modifier is provided-one`
+
+          DefaultSupportSpecs.`default values are disabled and another modifier is provided-two`
+        }
+
+        "local transformer for default value exists" - {
+          DefaultSupportSpecs.`local transformer for default value exists`
+        }
+
+        "local transformer for the whole entity exists" - {
+          DefaultSupportSpecs.`local transformer for the whole entity exists`
+        }
+      }
+
+      // the same limitation as above, not able to move compilation errors to runtime
+
+      // "not compile when default parameter values are disabled" - {
+      //   compileError("""
+      //     Foo(10).into[Bar].disableDefaultValues.transform
+      //   """)
+      //     .check("", "Chimney can't derive transformation from Foo to Bar")
+
+      //   compileError("""
+      //     Baah(10, Foo(300)).into[Baahr].disableDefaultValues.transform
+      //   """)
+      //     .check("", "Chimney can't derive transformation from Baah to Baahr")
+      // }
+    }
+
+  }
 
   //workaround scala3 bugs, hopefully will be fixed one day
   case class SomeFoo(x: String)
@@ -187,6 +286,44 @@ object TransformerDslSpec extends TestSuite {
   lazy val fooToFoobar2OptDefNone = SomeFoo("foo").into[Foobar2].disableDefaultValues.enableOptionDefaultsToNone.transform
   lazy val fooToFoobar2NoOptDef = SomeFoo("foo").into[Foobar2].transform
   lazy val fooToFoobar2PrederDefault = SomeFoo("foo").into[Foobar2].enableOptionDefaultsToNone.transform
+
+  object DefaultSupportSpecs {
+    case class Foo(x: Int)
+    case class Bar(x: Int, y: Long = 30L)
+    case class Baz(x: Int = 5, y: Long = 100L)
+    case class Baah(x: Int, y: Foo = Foo(0))
+    case class Baahr(x: Int, y: Bar)
+
+    def `field does not exists - the source-single` = Foo(10).transformInto[Bar] ==> Bar(10, 30L)
+    def `field does not exists - the source-sequence` = Seq(Foo(30), Foo(40)).transformInto[Seq[Bar]] ==> Seq(Bar(30, 30L), Bar(40, 30L))
+
+    def `field does not exists - nested object` = Baah(10, Foo(300)).transformInto[Baahr] ==> Baahr(10, Bar(300, 30L))
+
+    def `field exists - the source-single` = Bar(100, 200L).transformInto[Baz] ==> Baz(100, 200L)
+    def `field exists - the source-sequence` = Seq(Bar(100, 200L), Bar(300, 400L)).transformInto[Seq[Baz]] ==> Seq(Baz(100, 200L), Baz(300, 400L))
+
+    def `another modifier is provided` = Foo(10).into[Bar].withFieldConst(_.y, 45L).transform ==> Bar(10, 45L) 
+
+    def `default values are disabled and another modifier is provided-one` =
+      Foo(10).into[Bar].disableDefaultValues.withFieldConst(_.y, 45L).transform ==> Bar(10, 45L)
+
+    def `default values are disabled and another modifier is provided-two` =
+      Foo(10).into[Bar].withFieldConst(_.y, 48L).disableDefaultValues.transform ==> Bar(10, 48L)
+
+    def `local transformer for default value exists` =
+      given localTransformer: Transformer[Long, Foo] with
+        def transform(from: Long): Foo = Foo(from.toInt * 10)          
+      
+      Bar(100, 300L).transformInto[Baah] ==> Baah(100, Foo(3000))
+
+
+    def `local transformer for the whole entity exists` =
+      given fooBarTransformer: Transformer[Foo, Bar] with
+        def transform(from: Foo): Bar = Bar(from.x, 333L)
+      
+      Foo(333).transformInto[Bar] ==> Bar(333, 333L)
+
+  }
 
 }
 

@@ -28,13 +28,9 @@ object CoproductDerive:
               inline extractInstanceAt[Config, from](config) match
                 case f: Some[`from` => tt] => f.get.asInstanceOf[From => To](from)
                 case _ =>
-                  inline SpecialDerive.deriveSpecialCases[from, to, flags, path Concat "." Concat fromName] match
-                    case Some(t: Transformer[from, to]) =>
-                      t.asInstanceOf[Transformer[From, To]].transform(from)
-                    case _ =>
-                      TransformerDerive.deriveConfigured[from, to, path Concat "." Concat fromName](configOfAtPath[to, flags, path Concat "." Concat fromName](defaultDefinitionWithFlags))
-                        .asInstanceOf[Transformer[From, To]]
-                        .transform(from)
+                  TransformerDerive.deriveConfigured[from, to, path Concat "." Concat fromName](configOfAtPath[to, flags, path Concat "." Concat fromName](defaultDefinitionWithFlags))
+                    .asInstanceOf[Transformer[From, To]]
+                    .transform(from)
         else
           findACase[From, To, fromLeft, toLeft, labels, Config, Position + 1](config)(from)
       case _: (EmptyTuple, _, _) =>
@@ -67,15 +63,9 @@ object CoproductDerive:
                 case f: Some[`from` => tt] =>
                   sup.pure(f.get.asInstanceOf[From => To](from))
                 case d =>
-                  inline SpecialDerive.deriveSpecialCases[from, to, flags, path Concat "." Concat fromName] match
-                    case Some(t: Transformer[from, to]) =>
-                      sup.pure(t.asInstanceOf[Transformer[From, To]].transform(from))
-                    case Some(t: TransformerF[F, from, to]) =>
-                      t.asInstanceOf[TransformerF[F, From, To]].transform(from)
-                    case _ =>
-                      TransformerDerive.deriveConfiguredF[F, from, to, path Concat "." Concat fromName](configOfAtPath[to, flags, path Concat "." Concat fromName](defaultDefinitionWithFlags))
-                        .asInstanceOf[TransformerF[F, From, To]]
-                        .transform(from)
+                  TransformerDerive.deriveConfiguredF[F, from, to, path Concat "." Concat fromName](configOfAtPath[to, flags, path Concat "." Concat fromName](defaultDefinitionWithFlags))
+                    .asInstanceOf[TransformerF[F, From, To]]
+                    .transform(from)
         else
           findACaseF[F, From, To, fromLeft, toLeft, labels, Config, Position + 1](config)(from)
       case _: (EmptyTuple, _, _) =>

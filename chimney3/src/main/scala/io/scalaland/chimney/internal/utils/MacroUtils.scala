@@ -64,7 +64,7 @@ object MacroUtils:
     code.asTerm match
      case InlinedLambda(List(ValDef(identVal, _, _)), t@Select(Ident(identExtract), name)) if identVal == identExtract => 
       Expr(name)
-     case t => report.throwError(s"Illegal selector: ${code.show}")
+     case t => report.throwError(s"Illegal selector: ${normalizeLambdaMessage(code.show)}")
 
   
   object InlinedLambda:
@@ -75,6 +75,10 @@ object MacroUtils:
         case Inlined(_, _, nested) => InlinedLambda.unapply(nested)
         case t => None
   end InlinedLambda
+
+  private def normalizeLambdaMessage(lambdaShow: String): String =
+    lambdaShow.replaceAll("""_\$\d+""", "x")
+  end normalizeLambdaMessage
 
   inline def debug[T](inline any: T): T = ${ printImplMacro('any) }
 

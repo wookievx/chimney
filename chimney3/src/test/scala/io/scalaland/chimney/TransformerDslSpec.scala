@@ -379,6 +379,91 @@ object TransformerDslSpec extends TestSuite {
 
     }
 
+    "support common data-types" - {
+      import CommonDataTypesSpec._
+
+      "support scala.Option" - {
+        Option(Foo("a")).transformInto[Option[Bar]] ==> Option(Bar("a"))
+        (Some(Foo("a")): Option[Foo]).transformInto[Option[Bar]] ==> Option(Bar("a"))
+        Some(Foo("a")).transformInto[Option[Bar]] ==> Some(Bar("a"))
+        (None: Option[Foo]).transformInto[Option[Bar]] ==> None
+        (None: Option[String]).transformInto[Option[String]] ==> None
+        Option("abc").transformInto[Option[String]] ==> Some("abc")
+      }
+
+      "support scala.util.Either" - {
+        (Left(Foo("a")): Either[Foo, Foo]).transformInto[Either[Bar, Bar]] ==> Left(Bar("a"))
+        (Right(Foo("a")): Either[Foo, Foo]).transformInto[Either[Bar, Bar]] ==> Right(Bar("a"))
+        // Left(Foo("a")).transformInto[Either[Bar, Bar]] ==> Left(Bar("a"))
+        // Right(Foo("a")).transformInto[Either[Bar, Bar]] ==> Right(Bar("a"))
+        // Left(Foo("a")).transformInto[Left[Bar, Bar]] ==> Left(Bar("a"))
+        // Right(Foo("a")).transformInto[Right[Bar, Bar]] ==> Right(Bar("a"))
+        (Left("a"): Either[String, String]).transformInto[Either[String, String]] ==> Left("a")
+        (Right("a"): Either[String, String]).transformInto[Either[String, String]] ==> Right("a")
+      }
+
+      "support Iterables collections" - {
+        Seq(Foo("a")).transformInto[Seq[Bar]] ==> Seq(Bar("a"))
+        List(Foo("a")).transformInto[List[Bar]] ==> List(Bar("a"))
+        Vector(Foo("a")).transformInto[Vector[Bar]] ==> Vector(Bar("a"))
+        Set(Foo("a")).transformInto[Set[Bar]] ==> Set(Bar("a"))
+
+        Seq("a").transformInto[Seq[String]] ==> Seq("a")
+        List("a").transformInto[List[String]] ==> List("a")
+        Vector("a").transformInto[Vector[String]] ==> Vector("a")
+        Set("a").transformInto[Set[String]] ==> Set("a")
+
+        List(Foo("a")).transformInto[Seq[Bar]] ==> Seq(Bar("a"))
+        Vector(Foo("a")).transformInto[Seq[Bar]] ==> Seq(Bar("a"))
+
+        List("a").transformInto[Seq[String]] ==> Seq("a")
+        Vector("a").transformInto[Seq[String]] ==> Seq("a")
+      }
+
+      "support Arrays" - {
+        Array(Foo("a")).transformInto[Array[Foo]] ==> Array(Foo("a"))
+        Array(Foo("a")).transformInto[Array[Bar]] ==> Array(Bar("a"))
+        Array("a").transformInto[Array[String]] ==> Array("a")
+      }
+
+      "support conversion between Iterables and Arrays" - {
+
+        Array(Foo("a")).transformInto[List[Bar]] ==> List(Bar("a"))
+        Array("a", "b").transformInto[Seq[String]] ==> Seq("a", "b")
+        Array(3, 2, 1).transformInto[Vector[Int]] ==> Vector(3, 2, 1)
+
+        Vector("a").transformInto[Array[String]] ==> Array("a")
+        List(1, 6, 3).transformInto[Array[Int]] ==> Array(1, 6, 3)
+        Seq(Bar("x"), Bar("y")).transformInto[Array[Foo]] ==> Array(Foo("x"), Foo("y"))
+      }
+
+      "support Map" - {
+        Map("test" -> Foo("a")).transformInto[Map[String, Bar]] ==> Map("test" -> Bar("a"))
+        Map("test" -> "a").transformInto[Map[String, String]] ==> Map("test" -> "a")
+        Map(Foo("test") -> "x").transformInto[Map[Bar, String]] ==> Map(Bar("test") -> "x")
+        Map(Foo("test") -> Foo("x")).transformInto[Map[Bar, Bar]] ==> Map(Bar("test") -> Bar("x"))
+      }
+
+      // "support conversion between Iterables and Maps" - {
+
+      //   Seq(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+      //     Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+
+      //   Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[List[(Bar, Foo)]] ==>
+      //     List(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+      // }
+
+      // "support conversion between Arrays and Maps" - {
+
+      //   Array(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+      //     Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+
+      //   Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Array[(Bar, Foo)]] ==>
+      //     Array(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+      // }
+
+    }
+
   }
 
   //workaround scala3 bugs, hopefully will be fixed one day
@@ -471,6 +556,12 @@ object TransformerDslSpec extends TestSuite {
     def `relabel fields with relabelling modifier` = Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
 
   }
+
+  object CommonDataTypesSpec {
+    case class Foo(value: String)
+    case class Bar(value: String)
+  }
+
 
 }
 

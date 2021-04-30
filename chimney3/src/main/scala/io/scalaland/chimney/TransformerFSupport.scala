@@ -57,6 +57,9 @@ trait TransformerFSupport[F[_]]:
 end TransformerFSupport
 
 object TransformerFSupport:
+
+  transparent inline def support[F[_]](using fs: TransformerFSupport[F]) = fs
+
   given TransformerFSupport[Option] with
     def pure[A](value: A): Option[A] = Some(value)
     def product[A, B](fa: Option[A], fb: => Option[B]): Option[(A, B)] =

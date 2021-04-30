@@ -69,7 +69,6 @@ val scala3Settings = Seq(
     "-deprecation",
     "-feature",
     "-language:higherKinds",
-    "-explain-types",
     "-Xmax-inlines", "64"
   )
 )
@@ -87,8 +86,8 @@ lazy val root = project
   .settings(settings: _*)
   .settings(publishSettings: _*)
   .settings(noPublishSettings: _*)
-  .aggregate(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS)
-  .dependsOn(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS)
+  .aggregate(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS, chimney3)
+  .dependsOn(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS, chimney3)
   .enablePlugins(SphinxPlugin, GhpagesPlugin)
   .settings(
     Sphinx / version := version.value,

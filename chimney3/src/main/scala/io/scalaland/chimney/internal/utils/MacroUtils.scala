@@ -167,4 +167,22 @@ object MacroUtils:
       case None =>
         '{}
 
+  inline def printfCompileTime[P <: String, Args <: Tuple]: String = ${ printFCompileTimeImpl[P, Args] }
+
+  private def printFCompileTimeImpl[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[String] =
+    Type.valueOfConstant[P] match
+      case Some(v) =>
+        Expr(v.format(showAll[Args]: _*))
+      case None =>
+        quotes.reflect.report.throwError("Failed to format string at compile time, internal library error")
+  end printFCompileTimeImpl
+
+  private def showAll[Args <: Tuple: Type](using Quotes): List[String] =
+    Type.of[Args] match
+      case '[arg *: args] =>
+        Type.show[arg] :: showAll[args]
+      case _ =>
+        List.empty
+  end showAll
+
 end MacroUtils

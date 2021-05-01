@@ -405,13 +405,13 @@ object DeriveUtils:
 
   inline def transformerWithF[F[_], From, To](inline impl: From => F[To]): TransformerF[F, From, To] = ${implementTransformerFWith('impl)}
 
-  private def implementTransformerWith[From: Type, To: Type](impl: Expr[From => To])(using Quotes): Expr[Transformer[From, To]] =
+  private[derived] def implementTransformerWith[From: Type, To: Type](impl: Expr[From => To])(using Quotes): Expr[Transformer[From, To]] =
     '{
       new TransformerImpl[From, To]:
         def transform(from: From): To = ${Expr.betaReduce('{(${impl})(from)})}
     }
 
-  private def implementTransformerFWith[F[_]: Type, From: Type, To: Type](impl: Expr[From => F[To]])(using Quotes): Expr[TransformerF[F, From, To]] =
+  private[derived] def implementTransformerFWith[F[_]: Type, From: Type, To: Type](impl: Expr[From => F[To]])(using Quotes): Expr[TransformerF[F, From, To]] =
     '{
       new TransformerFImpl[F, From, To]:
         def transform(from: From): F[To] = ${Expr.betaReduce('{(${impl})(from)})}

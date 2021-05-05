@@ -41,9 +41,9 @@ object SpecialDerive:
       case '[Array[(k, v)]] =>
         Type.of[To] match
           case '[IterableOnce[(tk, tv)]] =>
-            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[(k, v)]].iterator})
           case '[Array[(tk, tv)]] =>
-            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[(k, v)]].iterator})
           case _ =>
             None
       case '[Array[a]] =>
@@ -57,9 +57,9 @@ object SpecialDerive:
       case '[IArray[(k, v)]] =>
         Type.of[To] match
           case '[IterableOnce[(tk, tv)]] =>
-            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[(k, v)]].iterator})
           case '[Array[(tk, tv)]] =>
-            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[(k, v)]].iterator})
           case _ =>
             None
       case '[IArray[a]] =>

@@ -132,7 +132,8 @@ object MacroUtils:
     (Type.valueOfConstant[P], constantPart.value, Type.valueOfConstant[Error]) match
       case (Some(path), Some(constantPart), Some(error)) =>
         report.throwError(s"$constantPart at $path, type in question: ${Type.show[T]}, error: ${error}")
-      case _ =>
+      case (p, cp, e) =>
+        report.error(s"WTF: got $p, $cp, $e")
         report.throwError("Unable to produce nice error, bug in library")
 
   end reportErrorAtPathWithTypeImpl
@@ -142,7 +143,8 @@ object MacroUtils:
     (path.value, constantPart.value) match
       case (Some(path), Some(v)) => 
         report.throwError(s"$v at $path")
-      case _ =>
+      case (p, cp) =>
+        report.error(s"WTF: got $p, $cp")
         report.throwError("Unable to produce nice error, bug in library")
   }
 
@@ -170,7 +172,7 @@ object MacroUtils:
   inline def doPrintFCompileTime[P <: String, Args <: Tuple]: Unit = ${doPrintFCompileTimeImpl[P, Args]}
 
   private def doPrintFCompileTimeImpl[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[Unit] =
-    printFCompileTimeImpl[P, Args].value match
+    printfCompileTimeMacro[P, Args].value match
       case Some(s) => 
         println(s)
         '{}
@@ -178,15 +180,15 @@ object MacroUtils:
         '{}
   end doPrintFCompileTimeImpl
 
-  inline def printfCompileTime[P <: String, Args <: Tuple]: String = ${ printFCompileTimeImpl[P, Args] }
+  inline def printfCompileTime[P <: String, Args <: Tuple]: String = ${ printfCompileTimeMacro[P, Args] }
 
-  private def printFCompileTimeImpl[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[String] =
+  def printfCompileTimeMacro[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[String] =
     Type.valueOfConstant[P] match
       case Some(v) =>
         Expr(v.format(showAll[Args]: _*))
       case None =>
         quotes.reflect.report.throwError("Failed to format string at compile time, internal library error")
-  end printFCompileTimeImpl
+  end printfCompileTimeMacro
 
 
   private def showAll[Args <: Tuple: Type](using Quotes): List[String] =

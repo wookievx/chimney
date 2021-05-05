@@ -45,13 +45,13 @@ object TransformerDerive:
             (specialInstance orElse productInstance orElse sumInstance).getOrElse(
               MacroUtils.reportErrorAtPathMacro(
                 '{constValue[P]},
-                '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]}
+                MacroUtils.printfCompileTimeMacro["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]
               )
             )
           case _ =>
             MacroUtils.reportErrorAtPathMacro(
               '{constValue[P]},
-              '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]}
+              MacroUtils.printfCompileTimeMacro["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]
             )            
   end deriveConfiguredImpl
 
@@ -274,7 +274,7 @@ object DeriveProduct:
                 outputArray(targetPosition) = fixed.transform(inputArray(constValue[Pos]))
               case _ =>
                 outputArray(targetPosition) = TransformerDerive.deriveConfigured[tpe, Tpe, path Concat "." Concat Field](
-                  configOfAtPath[Tpe, TransformerFlag.DefaultValues *: EmptyTuple, path Concat "." Concat Field](defaultDefinitionWithFlags))
+                  configOfAtPath[Tpe, flags, path Concat "." Concat Field](defaultDefinitionWithFlags))
                   .asInstanceOf[Transformer[Any, Tpe]]
                   .transform(inputArray(constValue[Pos]))
           case _: (_ *: sourceFields, _ *: sourceTypes) =>
@@ -315,7 +315,7 @@ object DeriveProduct:
                   outputArray,
                   outputArray => 
                   outputArray(targetPosition) = TransformerDerive.deriveConfigured[tpe, Tpe, Concat[path, path Concat "." Concat Field]](
-                    configOfAtPath[Tpe, TransformerFlag.DefaultValues *: EmptyTuple, Concat[path, path Concat "." Concat Field]](defaultDefinitionWithFlags))
+                    configOfAtPath[Tpe, flags, Concat[path, path Concat "." Concat Field]](defaultDefinitionWithFlags))
                     .asInstanceOf[Transformer[Any, Tpe]]
                     .transform(inputArray(constValue[Pos]))
                 )
@@ -340,9 +340,15 @@ object DeriveProduct:
                 case _: Option[?] =>
                   onAccess(None)
                 case _ =>
-                  error(constValue["Unable to find default value in target or method of a name (or those options are disabled), when deriving at: " Concat Path])    
+                  MacroUtils.reportErrorAtPath[Path](
+                    constValue[Path], 
+                    MacroUtils.printfCompileTime["Unable to find default value in %s or method in %s for %s", (To, From, Field)]
+                  )
             else
-              error(constValue["Unable to find default value in target or method of a name (or those options are disabled), when deriving at: " Concat Path])
+              MacroUtils.reportErrorAtPath[Path](
+                constValue[Path],
+                MacroUtils.printfCompileTime["Unable to find default value in %s or method in %s for %s", (To, From, Field)]
+              )
   end specialExtractors
 
   private transparent inline def extractDefault[Flags <: Tuple, To, Field](inline config: TypeDeriveConfig[_, Flags, _]) =

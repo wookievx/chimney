@@ -43,11 +43,11 @@ object TransformerDslSpec extends TestSuite {
 
       "field is added to the target" - {
 
-        // "not compile if source for the target fields is not provided" - {
+        "not compile if source for the target fields is not provided" - {
 
-        //   compileError("Bar(3, (3.14, 3.14)).transformInto[Foo]")
-        //     .check("", "no accessor named y in source type io.scalaland.chimney.DslSpec.Bar")
-        // }
+          compileError("Bar(3, (3.14, 3.14)).transformInto[Foo]")
+            .check("", "Unable to find default value in Foo or method in Bar for \"y\" at")
+        }
 
         "fill the field with provided default value" - {
 
@@ -146,10 +146,10 @@ object TransformerDslSpec extends TestSuite {
             fooToFoobarOptDefault ==> Foobar("foo", None)
           }
 
-          // "not compile if .enableOptionDefaultsToNone is missing" - {
-          //   compileError("""SomeFoo("foo").into[Foobar].transform ==> Foobar("foo", None)""")
-          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar")
-          // }
+          "not compile if .enableOptionDefaultsToNone is missing" - {
+            compileError("""SomeFoo("foo").into[Foobar].transform ==> Foobar("foo", None)""")
+              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at")
+          }
 
           "target has default value, but default values are disabled and .enableOptionDefaultsToNone" - {
             fooToFoobar2OptDefNone ==> Foobar2("foo", None)
@@ -160,15 +160,15 @@ object TransformerDslSpec extends TestSuite {
             fooToFoobar2PrederDefault ==> Foobar2("foo", Some(42))
           }
 
-          // "not compile if default value is missing and no .enableOptionDefaultsToNone" - {
-          //   compileError("""SomeFoo("foo").into[Foobar].transform""")
-          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar")
-          // }
+          "not compile if default value is missing and no .enableOptionDefaultsToNone" - {
+            compileError("""SomeFoo("foo").into[Foobar].transform""")
+              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at ")
+          }
 
-          // "not compile if default values are disabled and no .enableOptionDefaultsToNone" - {
-          //   compileError("""SomeFoo("foo").into[Foobar2].disableDefaultValues.transform""")
-          //     .check("", "Chimney can't derive transformation from SomeFoo to Foobar2")
-          // }
+          "not compile if default values are disabled and no .enableOptionDefaultsToNone" - {
+            compileError("""SomeFoo("foo").into[Foobar2].disableDefaultValues.transform""")
+              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar2 or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at ")
+          }
         }
 
         "fill the field with provided generator function" - {
@@ -262,17 +262,18 @@ object TransformerDslSpec extends TestSuite {
 
       // the same limitation as above, not able to move compilation errors to runtime
 
-      // "not compile when default parameter values are disabled" - {
-      //   compileError("""
-      //     Foo(10).into[Bar].disableDefaultValues.transform
-      //   """)
-      //     .check("", "Chimney can't derive transformation from Foo to Bar")
-
-      //   compileError("""
-      //     Baah(10, Foo(300)).into[Baahr].disableDefaultValues.transform
-      //   """)
-      //     .check("", "Chimney can't derive transformation from Baah to Baahr")
-      // }
+      "not compile when default parameter values are disabled" - {
+        import DefaultSupportSpecs._
+        compileError("""
+          Foo(10).into[Bar].disableDefaultValues.transform
+        """)
+          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at ")
+        
+        compileError("""
+          Baah(10, Foo(300)).into[Baahr].disableDefaultValues.transform
+        """)
+          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at ")
+      }
     }
 
     "transform with rename" - {
@@ -285,26 +286,26 @@ object TransformerDslSpec extends TestSuite {
         TransformWithRenameSpecs.`between different types: incorrect`
       }
 
-      // "between different types: without implicit" - {
-      //   compileError("""
-      //       val user: User = User(1, "Kuba", None)
-      //       user.into[UserPL].withFieldRenamed(_.name, _.imie)
-      //           .withFieldRenamed(_.age, _.wiek)
-      //           .transform
-      //     """)
-      //     .check("", "Chimney can't derive transformation from User to UserPL")
-      // }
+      "between different types: without implicit" - {
+        compileError("""
+            import TransformWithRenameSpecs._
+            val user: User = User(1, "Kuba", None)
+            user.into[UserPL].withFieldRenamed(_.name, _.imie)
+                .withFieldRenamed(_.age, _.wiek)
+                .transform
+          """)
+          .check("", "Unable to find default value in scala.util.Left[scala.Unit, scala.Int] or method in scala.None.type for \"value\" at .age.None$")
+      }
     }
 
     "support relabelling of fields" - {
 
-      // again not possible to elegantly check this
+      "not compile if relabelling modifier is not provided" - {
+        import RelabelingOfFieldSpec._
 
-      // "not compile if relabelling modifier is not provided" - {
-
-      //   compileError("""Foo(10, "something").transformInto[Bar]""")
-      //     .check("", "Chimney can't derive transformation from Foo to Bar")
-      // }
+        compileError("""Foo(10, "something").transformInto[Bar]""")
+          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar or method in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo for \"z\" at ")
+      }
 
       "relabel fields with relabelling modifier" - {
         RelabelingOfFieldSpec.`relabel fields with relabelling modifier`
@@ -366,16 +367,15 @@ object TransformerDslSpec extends TestSuite {
           .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)""")
       }
 
-      // again not possible to elegantly check this
+      "not compile if relabelled - a wrong way" - {
+        import RelabelingOfFieldSpec._
 
-      // "not compile if relabelled - a wrong way" - {
+        compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform""")
+          .check("", "Automatic derivation for supplied types (from java.lang.String to scala.Int) not supported at .y")
 
-      //   compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform""")
-      //     .check("", "Chimney can't derive transformation from Foo to Bar")
-
-      //   compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.x, _.z).transform""")
-      //     .check("", "Chimney can't derive transformation from Foo to Bar")
-      // }
+        compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.x, _.z).transform""")
+          .check("", "Automatic derivation for supplied types (from scala.Int to java.lang.String) not supported at .x")
+      }
 
     }
 
@@ -444,29 +444,29 @@ object TransformerDslSpec extends TestSuite {
         Map(Foo("test") -> Foo("x")).transformInto[Map[Bar, Bar]] ==> Map(Bar("test") -> Bar("x"))
       }
 
-      // "support conversion between Iterables and Maps" - {
+      "support conversion between Iterables and Maps" - {
 
-      //   Seq(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
-      //     Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+        Seq(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+          Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
 
-      //   Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[List[(Bar, Foo)]] ==>
-      //     List(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
-      // }
+        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[List[(Bar, Foo)]] ==>
+          List(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+      }
 
-      // "support conversion between Arrays and Maps" - {
+      "support conversion between Arrays and Maps" - {
 
-      //   Array(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
-      //     Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+        Array(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+          Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
 
-      //   Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Array[(Bar, Foo)]] ==>
-      //     Array(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
-      // }
+        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Array[(Bar, Foo)]] ==>
+          Array(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
+      }
 
     }
 
   }
 
-  //workaround scala3 bugs, hopefully will be fixed one day
+//workaround scala3 bugs, hopefully will be fixed one day
   case class SomeFoo(x: String)
   case class Foobar(x: String, y: Option[Int])
   case class Foobar2(x: String, y: Option[Int] = Some(42))

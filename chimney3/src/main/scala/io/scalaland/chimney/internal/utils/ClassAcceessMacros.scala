@@ -32,6 +32,25 @@ object ClassAcceessMacros:
         report.throwError("Failed to extract name, a bug library")
   end selectByNameImpl
 
+  def selectByNameMacro[C: Type, Field: Type](cValue: Expr[C])(using Quotes): Option[Expr[Any]] =
+    import quotes.reflect._
+
+    Type.valueOfConstant[Field] match
+      case Some(name: String) =>
+        findMethod[C](name) match
+          case Some(tpe) =>
+            tpe match
+              case '[tpe] =>
+                val extracted = Select.unique(cValue.asTerm, name).asExpr.asExprOf[tpe]
+                Some(extracted)
+              case _ =>
+                None
+          case _ =>
+            None
+      case _ =>
+        report.throwError("Failed to extract name it is not a string for some reason")
+  end selectByNameMacro
+
   private def findMethod[C: Type](name: String)(using q: Quotes): Option[Type[?]] =
     import q.reflect._
     val sym = TypeTree.of[C].symbol

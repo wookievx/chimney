@@ -21,106 +21,118 @@ object TransformerDerive:
     deriveConfiguredF[F, From, To, ""](configOf(config))
  
   inline def deriveConfigured[From, To, P <: String](inline config: TypeDeriveConfig[_, _, P]): Transformer[From, To] =
-    inline erasedValue[To] match
-      case _: From => transformerWith(x => x.asInstanceOf[To])
+    ${deriveConfiguredImpl[From, To, P]('config)}
+
+  private def deriveConfiguredImpl[From: Type, To: Type, P <: String: Type](config: Expr[TypeDeriveConfig[_, _, P]])(using Quotes): Expr[Transformer[From, To]] =
+    Type.of[To] match
+      case '[From] =>
+        implementTransformerWith('{x => x.asInstanceOf[To]})
       case _ =>
-        inline config match
-          case _: TypeDeriveConfig[_, flags, _] =>
-            inline SpecialDerive.deriveSpecialCases[From, To, flags, P] match       
-              case Some(transformer) =>
-                transformer
-              case None =>
-                summonFrom {
-                  case fm: Mirror.ProductOf[From] =>
-                    summonFrom {
-                      case tm: Mirror.ProductOf[To] =>
-                        transformerWith[From, To] { from =>
-                          val input = Tuple.fromProduct(from.asInstanceOf[Product]).toIArray
-                          val output = new Array[Any](constValue[Tuple.Size[tm.MirroredElemTypes]])
-                          DeriveProduct.handleTargetImpl[From, To, tm.MirroredElemTypes, tm.MirroredElemLabels, 0](config, fm)(output.asInstanceOf, input.asInstanceOf, from)
-                          tm.fromProduct(ArrayProduct(output))
-                        }
-                      case _ =>
-                        MacroUtils.reportErrorAtPath[P](
-                          constValue[P], 
-                          MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                        )
-                    }
-                  case fm: Mirror.SumOf[From] =>
-                    summonFrom {
-                      case tm: Mirror.SumOf[To] =>
-                        inline config match
-                          case c: TypeDeriveConfig[config, _, P] =>
-                            CoproductDerive.derived[From, To, config, P](c)(using fm, tm)
-                      case _ =>
-                        MacroUtils.reportErrorAtPath[P](
-                          constValue[P], 
-                          MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                        )
-                    }
-                  case _ =>
-                    MacroUtils.reportErrorAtPath[P](
-                      constValue[P],
-                      MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                    )
-                }
-  end deriveConfigured
+        config match
+          case '{$c: TypeDeriveConfig[conf, flags, P]} =>
+            val specialInstance = SpecialDerive.deriveSpecialCases[From, To, flags, P]
+            
+            val productInstance = (Expr.summon[Mirror.ProductOf[From]], Expr.summon[Mirror.ProductOf[To]]) match {
+              case (Some(fm), Some(tm)) => Some('{DeriveProduct.handleProduct[From, To]($c, $fm, $tm)})
+              case _ => None
+            }
+              
+            val sumInstance = (Expr.summon[Mirror.SumOf[From]], Expr.summon[Mirror.SumOf[To]]) match {
+              case (Some(fm), Some(tm)) => Some('{CoproductDerive.derived[From, To, conf, P]($c)(using $fm, $tm)})
+              case _ => None
+            }
+            
+            (specialInstance orElse productInstance orElse sumInstance).getOrElse(
+              MacroUtils.reportErrorAtPathMacro(
+                '{constValue[P]},
+                '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]}
+              )
+            )
+          case _ =>
+            MacroUtils.reportErrorAtPathMacro(
+              '{constValue[P]},
+              '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]}
+            )            
+  end deriveConfiguredImpl
 
   inline def deriveConfiguredF[F[_], From, To, P <: String](inline
    config: TypeDeriveConfig[_, _, P]
-  )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] = 
-    inline erasedValue[To] match
-      case _: From =>
-        transformerWithF[F, From, To](x => sup.pure(x.asInstanceOf[To]))
+  )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] = ${deriveConfiguredFImpl[F, From, To, P]('config, 'sup)}
+
+  private def deriveConfiguredFImpl[F[_]: Type, From: Type, To: Type, P <: String: Type](
+    config: Expr[TypeDeriveConfig[_, _, P]], 
+    sup: Expr[TransformerFSupport[F]]
+  )(using Quotes): Expr[TransformerF[F, From, To]] = 
+    Type.of[To] match
+      case '[From] =>
+        implementTransformerFWith('{x => $sup.pure(x.asInstanceOf[To])})
       case _ =>
-        inline config match
-          case _: TypeDeriveConfig[_, flags, _] =>
-            inline SpecialDerive.deriveSpecialCasesF[F, From, To, flags, P] match       
-              case Some(transformer: Transformer[From, To]) =>
-                liftTransformer(transformer)
-              case Some(transformer: TransformerF[F, From, To]) =>
-                transformer
-              case _ =>
-                summonFrom {
-                  case fm: Mirror.ProductOf[From] =>
-                    summonFrom {
-                      case tm: Mirror.ProductOf[To] =>
-                        transformerWithF[F, From, To] { from =>
-                          val input = Tuple.fromProduct(from.asInstanceOf[Product]).toIArray
-                          val output = sup.pure(new Array[Any](constValue[Tuple.Size[tm.MirroredElemTypes]]))
-                          val processedOutput = DeriveProduct.handleTargetWithFImpl[F, From, To, tm.MirroredElemTypes, tm.MirroredElemLabels, 0](config, fm)(output.asInstanceOf, input.asInstanceOf, from)
-                          sup.map(processedOutput, output => tm.fromProduct(ArrayProduct(output)))
-                        }
-                      case _ =>
-                        MacroUtils.reportErrorAtPath[P](
-                          constValue[P],
-                          MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                        )
-                    }
-                  case fm: Mirror.SumOf[From] =>
-                    summonFrom {
-                      case tm: Mirror.SumOf[To] =>
-                        inline config match
-                          case c: TypeDeriveConfig[config, _, P] =>
-                            CoproductDerive.derivedF[F, From, To, config, P](c)(using fm, tm)
-                      case _ =>
-                        MacroUtils.reportErrorAtPath[P](
-                          constValue[P],
-                          MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                        )
-                    }
-                  case _ =>
-                    MacroUtils.reportErrorAtPath[P](
-                      constValue[P],
-                      MacroUtils.printfCompileTime["Automatic derivation not supported (yet) for supplied types (from %s to %s)", (From, To)]
-                    )
-                }
+        config match
+          case '{$c: TypeDeriveConfig[conf, flags, P]} =>
+            val specialInstance: Option[Expr[TransformerF[F, From, To]]] = SpecialDerive.deriveSpecialCasesF[F, From, To, flags, P](sup).flatMap { instance => 
+              instance match
+                case '{$tf: TransformerF[F, From, To]} => 
+                  Some(tf)
+                case '{$t: Transformer[From, To]} => 
+                  Some(implementTransformerFWith[F, From, To]('{ from => $sup.pure($t.transform(from))}))
+                case _ => 
+                  None
+            }
+            val productInstance = (Expr.summon[Mirror.ProductOf[From]], Expr.summon[Mirror.ProductOf[To]]) match {
+              case (Some(fm), Some(tm)) => Some('{DeriveProduct.handleProductF[F, From, To]($c, $fm, $tm)(using $sup)})
+              case _ => None
+            }
+              
+            val sumInstance = (Expr.summon[Mirror.SumOf[From]], Expr.summon[Mirror.SumOf[To]]) match {
+              case (Some(fm), Some(tm)) => Some('{CoproductDerive.derivedF[F, From, To, conf, P]($c)(using $fm, $tm, $sup)})
+              case _ => None
+            }
+            
+            (specialInstance orElse productInstance orElse sumInstance).getOrElse(
+              MacroUtils.reportErrorAtPathMacro(
+                '{constValue[P]},
+                '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]}
+              )
+            )
+          case _ =>
+            MacroUtils.reportErrorAtPathMacro(
+              '{constValue[P]},
+              '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]}
+            )
+  end deriveConfiguredFImpl
+  
 end TransformerDerive
 
 object DeriveProduct:
 
   import DeriveUtils._
   import TransformerCfg._
+
+  inline def handleProduct[From, To](
+    inline config: TypeDeriveConfig[_, _, _],
+    fm: Mirror.ProductOf[From],
+    tm: Mirror.ProductOf[To]
+  ): Transformer[From, To] = 
+    transformerWith { from =>
+      val input = Tuple.fromProduct(from.asInstanceOf[Product]).toIArray
+      val output = new Array[Any](constValue[Tuple.Size[tm.MirroredElemTypes]])
+      handleTargetImpl[From, To, tm.MirroredElemTypes, tm.MirroredElemLabels, 0](config, fm)(output.asInstanceOf, input.asInstanceOf, from)
+      tm.fromProduct(ArrayProduct(output))
+    }    
+  end handleProduct
+
+  inline def handleProductF[F[_], From, To](
+    inline config: TypeDeriveConfig[_, _, _],
+    fm: Mirror.ProductOf[From],
+    tm: Mirror.ProductOf[To]
+  )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] = 
+    transformerWithF[F, From, To] { from =>
+      val input = Tuple.fromProduct(from.asInstanceOf[Product]).toIArray
+      val output = sup.pure(new Array[Any](constValue[Tuple.Size[tm.MirroredElemTypes]]))
+      val processedOutput = handleTargetWithFImpl[F, From, To, tm.MirroredElemTypes, tm.MirroredElemLabels, 0](config, fm)(output.asInstanceOf, input.asInstanceOf, from)
+      sup.map(processedOutput, output => tm.fromProduct(ArrayProduct(output)))
+    }
+  end handleProductF
 
   inline def handleTargetImpl[From, To, ToValues <: Tuple, TLabels <: Tuple, AtPos <: Int](
     inline config: TypeDeriveConfig[_, _, _],

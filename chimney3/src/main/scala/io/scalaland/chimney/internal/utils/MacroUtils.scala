@@ -125,8 +125,8 @@ object MacroUtils:
 
   inline def reportErrorAtPathWithType[P <: String, Error <: String, T](inline constantPart: String) = ${ reportErrorAtPathWithTypeImpl[P, Error, T]('constantPart) }
 
-  inline def reportErrorAtPath[P <: String](inline path: P, inline constantPart: String) = ${ reportErrorAtPathImpl('path, 'constantPart) }
-
+  inline def reportErrorAtPath[P <: String](inline path: P, inline constantPart: String) = ${ reportErrorAtPathMacro('path, 'constantPart) }
+  
   private def reportErrorAtPathWithTypeImpl[P <: String: Type, Error <: String: Type, T: Type](constantPart: Expr[String])(using q: Quotes): Expr[Nothing] =
     import q.reflect.report
     (Type.valueOfConstant[P], constantPart.value, Type.valueOfConstant[Error]) match
@@ -137,7 +137,7 @@ object MacroUtils:
 
   end reportErrorAtPathWithTypeImpl
 
-  private def reportErrorAtPathImpl[P <: String](path: Expr[P], constantPart: Expr[String])(using q: Quotes): Expr[Nothing] = {
+  def reportErrorAtPathMacro[P <: String](path: Expr[P], constantPart: Expr[String])(using q: Quotes): Expr[Nothing] = {
     import q.reflect.report
     (path.value, constantPart.value) match
       case (Some(path), Some(v)) => 
@@ -167,6 +167,17 @@ object MacroUtils:
       case None =>
         '{}
 
+  inline def doPrintFCompileTime[P <: String, Args <: Tuple]: Unit = ${doPrintFCompileTimeImpl[P, Args]}
+
+  private def doPrintFCompileTimeImpl[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[Unit] =
+    printFCompileTimeImpl[P, Args].value match
+      case Some(s) => 
+        println(s)
+        '{}
+      case None => 
+        '{}
+  end doPrintFCompileTimeImpl
+
   inline def printfCompileTime[P <: String, Args <: Tuple]: String = ${ printFCompileTimeImpl[P, Args] }
 
   private def printFCompileTimeImpl[P <: String: Type, Args <: Tuple: Type](using Quotes): Expr[String] =
@@ -176,6 +187,7 @@ object MacroUtils:
       case None =>
         quotes.reflect.report.throwError("Failed to format string at compile time, internal library error")
   end printFCompileTimeImpl
+
 
   private def showAll[Args <: Tuple: Type](using Quotes): List[String] =
     Type.of[Args] match

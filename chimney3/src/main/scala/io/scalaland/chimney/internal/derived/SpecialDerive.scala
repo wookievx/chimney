@@ -16,165 +16,232 @@ import scala.reflect.ClassTag
 object SpecialDerive:
   import DeriveUtils._
 
-  transparent inline def deriveSpecialCases[From, To, Flags <: Tuple, Path <: String] = ${deriveAllSpecialCases[From, To, Flags, Path]}
-
-  transparent inline def deriveSpecialCasesF[F[_], From, To, Flags <: Tuple, Path <: String](using sup: TransformerFSupport[F]) = ${deriveAllSpecialCasesF[F, From, To, Flags, Path]('sup)}
-
-  private def deriveAllSpecialCases[From: Type, To: Type, Flags <: Tuple: Type, Path <: String: Type](using Quotes): Expr[Option[Transformer[From, To]]] =
+  def deriveSpecialCases[From: Type, To: Type, Flags <: Tuple: Type, Path <: String: Type](using Quotes): Option[Expr[Transformer[From, To]]] =
     Type.of[From] match
       case '[Option[a]] =>
         Type.of[To] match
           case '[Option[b]] =>
-            '{Some(${deriveSpecialK1Impl[Option[a], Option[b], a, b, Flags, Path](instance => '{opt => 
+            println(s"Deriving for option: ${Type.show[a]} -> ${Type.show[b]}, and flags: ${Type.show[Flags]}")
+            Some('{${deriveSpecialK1Impl[Option[a], Option[b], a, b, Flags, Path Concat ".?"](instance => '{opt => 
               opt match
                 case Some(v) => Some(${instance}.transform(v))
                 case None => None
-            })}.asInstanceOf[Transformer[From, To]])}
+            })}.asInstanceOf[Transformer[From, To]]})
           case _ =>
-            '{None}
+            None
       case '[Either[l, r]] =>
         Type.of[To] match
           case '[Either[tl, tr]] =>
-            '{Some(${deriveSpecialK2Impl[Either, Either, l, r, tl, tr, Flags, Path](
+            Some(deriveSpecialK2Impl[Either[l, r], Either[tl, tr], l, r, tl, tr, Flags, Path Concat ".\\/"](
               (lInstance, rInstance) => '{either =>
                 either.fold(l => Left(${lInstance}.transform(l)), r => Right(${rInstance}.transform(r)))
-            })}.asInstanceOf[Transformer[From, To]])}
+            }).asInstanceOf[Expr[Transformer[From, To]]])
+          case _ =>
+            None
+      case '[Array[(k, v)]] =>
+        Type.of[To] match
+          case '[IterableOnce[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case '[Array[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case _ =>
+            None
       case '[Array[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[a]].iterator})
           case _ =>
-            '{None}
+            None
+      case '[IArray[(k, v)]] =>
+        Type.of[To] match
+          case '[IterableOnce[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case '[Array[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case _ =>
+            None
       case '[IArray[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IArray[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IArray[a]].iterator})
           case _ =>
-            '{None}
+            None
+      case '[IterableOnce[(k, v)]] =>
+        Type.of[To] match
+          case '[IterableOnce[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case '[Array[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case _ =>
+            None
       case '[IterableOnce[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator})
           case _ =>
-            '{None}
+            None
       case _ =>
-        '{None}
-  end deriveAllSpecialCases
+        None
+  end deriveSpecialCases
 
-  private def deriveAllSpecialCasesF[F[_]: Type, From: Type, To: Type, Flags <: Tuple: Type, Path <: String: Type](sup: Expr[TransformerFSupport[F]])(using Quotes): Expr[Option[Any]] =
+  def deriveSpecialCasesF[F[_]: Type, From: Type, To: Type, Flags <: Tuple: Type, Path <: String: Type](sup: Expr[TransformerFSupport[F]])(using Quotes): Option[Expr[Any]] =
     Type.of[From] match
       case '[Option[a]] =>
         Type.of[To] match
           case '[Option[b]] =>
-            '{Some(${deriveSpecialK1Impl[Option[a], Option[b], a, b, Flags, Path](instance => '{opt => 
+            Some(deriveSpecialK1Impl[Option[a], Option[b], a, b, Flags, Path](instance => '{opt => 
               opt match
                 case Some(v) => Some(${instance}.transform(v))
                 case None => None
-            })})}
+            }))
           case '[F[Option[b]]] =>
-            '{Some(${deriveSpecialK1FImpl[F, Option[a], Option[b], a, b, Flags, Path](instance => '{opt => 
+            Some(deriveSpecialK1FImpl[F, Option[a], Option[b], a, b, Flags, Path](instance => '{opt => 
               opt match
                 case Some(v) => $sup.map(${instance}.transform(v), Some(_))
                 case None => $sup.pure(None)
-            }, sup)})}
+            }, sup))
           case _ =>
-            '{None}
+            None
       case '[Either[l, r]] =>
         Type.of[To] match
           case '[Either[tl, tr]] =>
-            '{Some(${deriveSpecialK2Impl[Either, Either, l, r, tl, tr, Flags, Path](
+            Some(deriveSpecialK2Impl[Either[l, r], Either[tl, tr], l, r, tl, tr, Flags, Path](
               (lInstance, rInstance) => '{either =>
                 either.fold(l => Left(${lInstance}.transform(l)), r => Right(${rInstance}.transform(r)))
-            })})}
+            }))
           case '[F[Either[tl, tr]]] =>
-            '{Some(${deriveSpecialK2FImpl[F, Either, Either, l, r, tl, tr, Flags, Path](
+            Some(deriveSpecialK2FImpl[F, Either[l, r], Either[tl, tr], l, r, tl, tr, Flags, Path](
               (lInstance, rInstance) => '{either =>
                 either match
                   case Left(l) => $sup.map($lInstance.transform(l), Left(_))
                   case Right(r) => $sup.map($rInstance.transform(r), Right(_))
-            }, sup)})}
+            }, sup))
+          case _ =>
+            None
       case '[Array[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[Array[a]].iterator})
           case '[F[x]] =>
             Type.of[x] match
               case '[IterableOnce[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[Array[a]].iterator}, sup)
               case '[Array[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[Array[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[Array[a]].iterator}, sup)
               case _ =>
-                '{None}
+                None
           case _ =>
-            '{None}
+            None
       case '[IArray[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IArray[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IArray[a]].iterator})
           case '[F[x]] =>
             Type.of[x] match
               case '[IterableOnce[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IArray[a]].iterator}, sup)
               case '[Array[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[IArray[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IArray[a]].iterator}, sup)
               case _ =>
-                '{None}
+                None
           case _ =>
-            '{None}
+            None
+      case '[IterableOnce[(k, v)]] =>
+        Type.of[To] match
+          case '[IterableOnce[(tk, tv)]] =>
+            deriveIterableLikeK2[From, To, k, v, tk, tv, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator})
+          case '[F[x]] =>
+            Type.of[x] match
+              case '[IterableOnce[(tk, tv)]] =>
+                deriveIterableLikeK2F[F, From, To, k, v, tk, tv, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator}, sup)
+              case '[Array[(tk, tv)]] =>
+                deriveIterableLikeK2F[F, From, To, k, v, tk, tv, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IterableOnce[(k, v)]].iterator}, sup)
+              case _ =>
+                None
+          case _ =>
+            None
       case '[IterableOnce[a]] =>
         Type.of[To] match
           case '[IterableOnce[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator})
           case '[Array[b]] =>
-            deriveIterableLike[From, To, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator})
+            deriveIterableLike[From, To, a, b, Flags, Path Concat ".[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator})
           case '[F[x]] =>
             Type.of[x] match
               case '[IterableOnce[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator}, sup)
               case '[Array[b]] =>
-                deriveIterableLikeF[F, From, x, a, b, Flags, Path]('{_.asInstanceOf[IterableOnce[a]].iterator}, sup)
+                deriveIterableLikeF[F, From, x, a, b, Flags, Path Concat ".F[*]"]('{_.asInstanceOf[IterableOnce[a]].iterator}, sup)
               case _ =>
-                '{None}
+                None
           case _ =>
-            '{None}
+            None
       case _ =>
-        '{None}
-  end deriveAllSpecialCasesF
+        None
+  end deriveSpecialCasesF
 
-  private def deriveIterableLike[From: Type, To: Type, A: Type, B: Type, Flags <: Tuple: Type, Path <: String: Type](iteratorFrom: Expr[From => Iterator[A]])(using Quotes): Expr[Option[Transformer[From, To]]] =
+  private def deriveIterableLike[From: Type, To: Type, A: Type, B: Type, Flags <: Tuple: Type, Path <: String: Type](iteratorFrom: Expr[From => Iterator[A]])(using Quotes): Option[Expr[Transformer[From, To]]] =
     Expr.summon[Factory[B, To]] match
       case Some(factory) =>
-        '{Some(${deriveSpecialK1Impl[From, To, A, B, Flags, Path](
+        Some(deriveSpecialK1Impl[From, To, A, B, Flags, Path](
           instance => '{ from => 
             val b = $factory.newBuilder
             for elem <- $iteratorFrom(from) do b += $instance.transform(elem)
             b.result
           }
-        )})}
+        ))
       case None =>
-        '{None}
+        None
   end deriveIterableLike
 
-  private def deriveIterableLikeF[F[_]: Type, From: Type, To: Type, A: Type, B: Type, Flags <: Tuple: Type, Path <: String: Type](iteratorFrom: Expr[From => Iterator[A]], sup: Expr[TransformerFSupport[F]])(using Quotes): Expr[Option[TransformerF[F, From, To]]] =
+  private def deriveIterableLikeF[F[_]: Type, From: Type, To: Type, A: Type, B: Type, Flags <: Tuple: Type, Path <: String: Type](iteratorFrom: Expr[From => Iterator[A]], sup: Expr[TransformerFSupport[F]])(using Quotes): Option[Expr[TransformerF[F, From, To]]] =
     Expr.summon[Factory[B, To]] match
       case Some(factory) =>
-        '{Some(${deriveSpecialK1FImpl[F, From, To, A, B, Flags, Path](
+        Some(deriveSpecialK1FImpl[F, From, To, A, B, Flags, Path](
           instance => '{ from => $sup.traverse($iteratorFrom(from), $instance.transform(_))(using $factory)},
           sup
-        )})}
+        ))
       case None =>
-        '{None}
+        None
   end deriveIterableLikeF
+
+  private def deriveIterableLikeK2[From: Type, To: Type, A1: Type, A2: Type, B1: Type, B2: Type, Flags <: Tuple: Type, Path <: String: Type](iteratorFrom: Expr[From => Iterator[(A1, A2)]])(using Quotes): Option[Expr[Transformer[From, To]]] =
+    Expr.summon[Factory[(B1, B2), To]] match
+      case Some(factory) =>
+        Some(deriveSpecialK2Impl[From, To, A1, A2, B1, B2, Flags, Path](
+          (instance1, instance2) => '{ from => 
+            val b = $factory.newBuilder
+            for (_1, _2) <- $iteratorFrom(from) do b += ($instance1.transform(_1) -> $instance2.transform(_2))
+            b.result
+          }
+        ))
+      case None =>
+        None
+  end deriveIterableLikeK2
+
+  private def deriveIterableLikeK2F[F[_]: Type, From: Type, To: Type, A1: Type, A2: Type, B1: Type, B2: Type, Flags <: Tuple: Type, Path <: String: Type](
+    iteratorFrom: Expr[From => Iterator[(A1, A2)]], sup: Expr[TransformerFSupport[F]])(using Quotes): Option[Expr[TransformerF[F, From, To]]] =
+    Expr.summon[Factory[(B1, B2), To]] match
+      case Some(factory) =>
+        Some(deriveSpecialK2FImpl[F, From, To, A1, A2, B1, B2, Flags, Path](
+          (instance1, instance2) => '{ from => 
+            $sup.traverse($iteratorFrom(from), (_1, _2) => $sup.product($instance1.transform(_1), $instance2.transform(_2)))(using $factory)
+          },
+          sup
+        ))
+      case None =>
+        None
+  end deriveIterableLikeK2F
 
   private def deriveSpecialK1Impl[From: Type, To: Type, EF: Type, ET: Type, Flags <: Tuple: Type, Path <: String: Type](compute: Expr[Transformer[EF, ET]] => Expr[From => To])(using Quotes): Expr[Transformer[From, To]] =
     val elemTransformer = Expr.summon[Transformer[EF, ET]] match
@@ -193,7 +260,8 @@ object SpecialDerive:
     implementTransformerFWith(compute(elemTransformer))
   end deriveSpecialK1FImpl
 
-  private def deriveSpecialK2Impl[From[_, _]: Type, To[_, _]: Type, F1: Type, F2: Type, T1: Type, T2: Type, Flags <: Tuple: Type, Path <: String: Type](compute: (Expr[Transformer[F1, T1]], Expr[Transformer[F2, T2]]) => Expr[From[F1, F2] => To[T1, T2]])(using Quotes): Expr[Transformer[From[F1, F2], To[T1, T2]]] =
+  private def deriveSpecialK2Impl[From: Type, To: Type, F1: Type, F2: Type, T1: Type, T2: Type, Flags <: Tuple: Type, Path <: String: Type](
+    compute: (Expr[Transformer[F1, T1]], Expr[Transformer[F2, T2]]) => Expr[From => To])(using Quotes): Expr[Transformer[From, To]] =
     val elemTransformer1 = Expr.summon[Transformer[F1, T1]] match
       case Some(t) => t
       case None => '{TransformerDerive.deriveConfigured[F1, T1, Path](configOfAtPath[T1, Flags, Path](defaultDefinitionWithFlags))}
@@ -205,10 +273,10 @@ object SpecialDerive:
     implementTransformerWith(compute(elemTransformer1, elemTransformer2))
   end deriveSpecialK2Impl
 
-  private def deriveSpecialK2FImpl[F[_]: Type, From[_, _]: Type, To[_, _]: Type, F1: Type, F2: Type, T1: Type, T2: Type, Flags <: Tuple: Type, Path <: String: Type](
-    compute: (Expr[TransformerF[F, F1, T1]], Expr[TransformerF[F, F2, T2]]) => Expr[From[F1, F2] => F[To[T1, T2]]],
+  private def deriveSpecialK2FImpl[F[_]: Type, From: Type, To: Type, F1: Type, F2: Type, T1: Type, T2: Type, Flags <: Tuple: Type, Path <: String: Type](
+    compute: (Expr[TransformerF[F, F1, T1]], Expr[TransformerF[F, F2, T2]]) => Expr[From => F[To]],
     sup: Expr[TransformerFSupport[F]]
-  )(using Quotes): Expr[TransformerF[F, From[F1, F2], To[T1, T2]]] =
+  )(using Quotes): Expr[TransformerF[F, From, To]] =
     val elemTransformer1 = Expr.summon[TransformerF[F, F1, T1]] match
       case Some(t) => t
       case None => '{TransformerDerive.deriveConfiguredF[F, F1, T1, Path](configOfAtPath[T1, Flags, Path](defaultDefinitionWithFlags))(using $sup)}
@@ -220,12 +288,4 @@ object SpecialDerive:
     implementTransformerFWith(compute(elemTransformer1, elemTransformer2))
   end deriveSpecialK2FImpl
 
-
-  class OptionTransformer[A, B, Flags <: Tuple, Path <: String](impl: Option[A] => Option[B]) extends Transformer[Option[A], Option[B]]:
-    def transform(from: Option[A]): Option[B] = impl(from)
-  end OptionTransformer
-
-  class OptionTransformerF[F[_], A, B, Flags <: Tuple, Path <: String](impl: Option[A] => F[Option[B]])(using TransformerFSupport[F]) extends TransformerF[F, Option[A], Option[B]]:
-    def transform(from: Option[A]): F[Option[B]] = impl(from)
-  end OptionTransformerF
 end SpecialDerive

@@ -7,8 +7,6 @@ import scala.compiletime.error
 
 trait Transformer[From, To]:
   def transform(from: From): To
-  extension(from: From)
-    inline def transformInto: To = transform(from)
 end Transformer
 
 object Transformer:

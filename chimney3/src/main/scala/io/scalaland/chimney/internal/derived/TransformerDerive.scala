@@ -15,9 +15,11 @@ object TransformerDerive:
   import TransformerCfg._
 
   inline def derived[From, To, Config <: Tuple, Flags <: Tuple](config: TransformerDefinition[From, To, Config, Flags]): Transformer[From, To] =
+    MacroUtils.doPrintFCompileTime["Deriving Transformer[%s, %s]", (From, To)]
     deriveConfigured[From, To, ""](configOf(config))
 
   inline def derived[F[_], From, To, Config <: Tuple, Flags <: Tuple](config: TransformerFDefinition[F, From, To, Config, Flags])(using sup: TransformerFSupport[F]): TransformerF[F, From, To] =
+    MacroUtils.doPrintFCompileTime["Deriving Transformer[%s, %s]", (From, To)]
     deriveConfiguredF[F, From, To, ""](configOf(config))
  
   inline def deriveConfigured[From, To, P <: String](inline config: TypeDeriveConfig[_, _, P]): Transformer[From, To] =
@@ -56,7 +58,7 @@ object TransformerDerive:
   end deriveConfiguredImpl
 
   inline def deriveConfiguredF[F[_], From, To, P <: String](inline
-   config: TypeDeriveConfig[_, _, P]
+    config: TypeDeriveConfig[_, _, P]
   )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] = ${deriveConfiguredFImpl[F, From, To, P]('config, 'sup)}
 
   private def deriveConfiguredFImpl[F[_]: Type, From: Type, To: Type, P <: String: Type](
@@ -91,13 +93,13 @@ object TransformerDerive:
             (specialInstance orElse productInstance orElse sumInstance).getOrElse(
               MacroUtils.reportErrorAtPathMacro(
                 '{constValue[P]},
-                '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]}
+                MacroUtils.printfCompileTimeMacro["Automatic derivation for supplied types (from %s to %s) not supported", (From, To)]
               )
             )
           case _ =>
             MacroUtils.reportErrorAtPathMacro(
               '{constValue[P]},
-              '{MacroUtils.printfCompileTime["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]}
+              MacroUtils.printfCompileTimeMacro["Automatic derivation for supplied types (from %s to %s) failed unexpectedly", (From, To)]
             )
   end deriveConfiguredFImpl
   

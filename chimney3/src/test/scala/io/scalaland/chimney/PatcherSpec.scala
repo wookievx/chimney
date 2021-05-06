@@ -168,7 +168,7 @@ object PatcherSpec extends TestSuite {
     }
 
   }
-  
+
 }
 
 object TestDomain:

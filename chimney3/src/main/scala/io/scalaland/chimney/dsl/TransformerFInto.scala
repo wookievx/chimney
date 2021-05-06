@@ -123,3 +123,7 @@ final class TransformerFInto[F[_], From, To, Config <: Tuple, Flags <: Tuple](
         error("Changing definition failed, should not happen, a bug in library")
 
 end TransformerFInto
+
+extension[From](source: From)
+  inline def intoF[F[_]: TransformerFSupport, To]: TransformerFInto[F, From, To, EnableConfig[EmptyTuple, TransformerCfg.WrapperType[F]], TransformerFlag.DefaultValues *: EmptyTuple] =
+    TransformerInto(source, defaultDefinitionWithFlags[From, To, TransformerFlag.DefaultValues *: EmptyTuple]).lift[F]

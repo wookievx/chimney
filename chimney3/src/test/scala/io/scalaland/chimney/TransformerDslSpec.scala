@@ -464,6 +464,174 @@ object TransformerDslSpec extends TestSuite {
 
     }
 
+    "support sealed hierarchies" - {
+
+      "enum types encoded as sealed hierarchies of case objects" - {
+        "transforming from smaller to bigger enum" - {
+
+          inline given transformer: Transformer[colors1.Color, colors2.Color] = Transformer.derived[colors1.Color, colors2.Color]
+
+          (colors1.Red: colors1.Color).transformInto[colors2.Color] ==> colors2.Red
+          (colors1.Green: colors1.Color).transformInto[colors2.Color] ==> colors2.Green
+          (colors1.Blue: colors1.Color).transformInto[colors2.Color] ==> colors2.Blue
+        }
+
+        "transforming from bigger to smaller enum" - {
+
+          def blackIsRed(b: colors2.Black.type): colors1.Color =
+            colors1.Red
+
+          inline given transformer: Transformer[colors2.Color, colors1.Color] = 
+            defaultDefinition[colors2.Color, colors1.Color].withCoproductInstance(blackIsRed).buildTransformer
+
+          (colors2.Black: colors2.Color).transformInto[colors1.Color] ==> colors1.Red
+
+          (colors2.Red: colors2.Color).transformInto[colors1.Color] ==> colors1.Red
+
+          (colors2.Green: colors2.Color).transformInto[colors1.Color] ==> colors1.Green
+
+          (colors2.Blue: colors2.Color).transformInto[colors1.Color] ==> colors1.Blue
+        }
+
+      }
+
+      "transforming non-isomorphic domains" - {
+
+        def triangleToPolygon(t: shapes1.Triangle): shapes2.Shape =
+          shapes2.Polygon(
+            List(
+              t.p1.transformInto[shapes2.Point],
+              t.p2.transformInto[shapes2.Point],
+              t.p3.transformInto[shapes2.Point]
+            )
+          )
+
+        def rectangleToPolygon(r: shapes1.Rectangle): shapes2.Shape =
+          shapes2.Polygon(
+            List(
+              r.p1.transformInto[shapes2.Point],
+              shapes2.Point(r.p1.x, r.p2.y),
+              r.p2.transformInto[shapes2.Point],
+              shapes2.Point(r.p2.x, r.p1.y)
+            )
+          )
+
+        val triangle: shapes1.Shape =
+          shapes1.Triangle(shapes1.Point(0, 0), shapes1.Point(2, 2), shapes1.Point(2, 0))
+
+        triangle
+          .into[shapes2.Shape]
+          .withCoproductInstance(triangleToPolygon)
+          .withCoproductInstance(rectangleToPolygon)
+          .transform ==> shapes2.Polygon(List(shapes2.Point(0, 0), shapes2.Point(2, 2), shapes2.Point(2, 0)))
+      }
+
+      "transforming isomorphic domains that differ a detail" - {
+
+        given intToDoubleTransformer: Transformer[Int, Double] =
+          (_: Int).toDouble
+
+        (shapes1
+          .Triangle(shapes1.Point(0, 0), shapes1.Point(2, 2), shapes1.Point(2, 0)): shapes1.Shape)
+          .transformInto[shapes3.Shape] ==>
+          shapes3.Triangle(shapes3.Point(2.0, 0.0), shapes3.Point(2.0, 2.0), shapes3.Point(0.0, 0.0))
+
+        (shapes1
+          .Rectangle(shapes1.Point(0, 0), shapes1.Point(6, 4)): shapes1.Shape)
+          .transformInto[shapes3.Shape] ==>
+          shapes3.Rectangle(shapes3.Point(0.0, 0.0), shapes3.Point(6.0, 4.0))
+      }
+    }
+
+    "support polymorphic source/target objects and modifiers" - {
+
+      import Poly._
+
+      "monomorphic source to polymorphic target" - {
+
+        monoSource.transformInto[PolyTarget[String]] ==> polyTarget
+
+        def transform[T]: (String => T) => MonoSource => PolyTarget[T] =
+          fun => _.into[PolyTarget[T]].withFieldComputed(_.poly, src => fun(src.poly)).transform
+
+        transform[String](identity)(monoSource) ==> polyTarget
+      }
+
+      "polymorphic source to monomorphic target" - {
+
+        def transform[T]: PolySource[T] => MonoTarget =
+          _.into[MonoTarget].withFieldComputed(_.poly, _.poly.toString).transform
+
+        transform[String](polySource) ==> monoTarget
+      }
+
+      "polymorphic source to polymorphic target" - {
+
+        def transform[T]: PolySource[T] => PolyTarget[T] =
+          _.transformInto[PolyTarget[T]]
+
+        transform[String](polySource) ==> polyTarget
+      }
+
+      "handle type-inference for polymorphic computation" - {
+
+        def fun[T]: PolySource[T] => String = _.poly.toString
+
+        def transform[T]: PolySource[T] => MonoTarget =
+          _.into[MonoTarget].withFieldComputed(_.poly, fun).transform
+
+        transform[String](polySource) ==> monoTarget
+      }
+
+    }
+
+    "support abstracting over a value in dsl operations" - {
+
+      case class Foo(x: String)
+      case class Bar(z: Double, y: Int, x: String)
+
+      val partialTransformer = Foo("abc")
+        .into[Bar]
+        .withFieldComputed(_.y, _.x.length)
+
+      val transformer1 = partialTransformer.withFieldConst(_.z, 1.0)
+      val transformer2 = partialTransformer.withFieldComputed(_.z, _.x.length * 2.0)
+
+      transformer1.transform ==> Bar(1.0, 3, "abc")
+      transformer2.transform ==> Bar(6.0, 3, "abc")
+    }
+
+    "transform T to Option[T]" - {
+
+      "abc".transformInto[Option[String]] ==> Some("abc")
+      (null: String).transformInto[Option[String]] ==> None
+    }
+
+    "support recursive data structures" - {
+      import RecursiveTypesSpec._
+
+      "defined by hand" - {
+        given fooToBarTransformer: Transformer[Foo, Bar] = (foo: Foo) => {
+          Bar(foo.x.map(fooToBarTransformer.transform))
+        }
+
+        Foo(Some(Foo(None))).transformInto[Bar] ==> Bar(Some(Bar(None)))
+      }
+
+      "generated automatically" - {
+        given fooToBarTransformer: Transformer[Foo, Bar] = Transformer.derived[Foo, Bar]
+
+        Foo(Some(Foo(None))).transformInto[Bar] ==> Bar(Some(Bar(None)))
+      }
+
+      "support mutual recursion" - {
+
+        given bar1ToBar2Transformer: Transformer[Bar1, Bar2] = Transformer.derived[Bar1, Bar2]
+
+        Bar1(1, Baz(Some(Bar1(2, Baz(None))))).transformInto[Bar2] ==> Bar2(Baz(Some(Bar2(Baz(None)))))
+      }
+    }
+
   }
 
 //workaround scala3 bugs, hopefully will be fixed one day
@@ -553,7 +721,8 @@ object TransformerDslSpec extends TestSuite {
     case class HaveY(y: String)
     case class HaveZ(z: String)
 
-    def `relabel fields with relabelling modifier` = Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    def `relabel fields with relabelling modifier` = 
+      MacroUtils.debug(Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform) ==> Bar(10, "something")
 
   }
 
@@ -562,6 +731,15 @@ object TransformerDslSpec extends TestSuite {
     case class Bar(value: String)
   }
 
+  object RecursiveTypesSpec {
+
+    case class Foo(x: Option[Foo])
+    case class Bar(x: Option[Bar])
+
+    case class Baz[T](bar: Option[T])
+    case class Bar1(x: Int, foo: Baz[Bar1])
+    case class Bar2(foo: Baz[Bar2])
+  }
 
 }
 

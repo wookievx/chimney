@@ -19,7 +19,12 @@ object MacroUtils:
       val namesExpr: Expr[List[String]] =
         Expr.ofList(names.map(Expr(_)))
 
-      val body = comp.tree.asInstanceOf[ClassDef].body
+      val body = try {
+        comp.tree.asInstanceOf[ClassDef].body
+      } catch {
+        case _ =>
+          List.empty
+      }
       val idents: List[Ref] =
         for case deff @ DefDef(name, _, _, _) <- body if name.startsWith("$lessinit$greater$default")
         yield Ref(deff.symbol)

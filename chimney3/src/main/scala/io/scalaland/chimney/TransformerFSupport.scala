@@ -54,6 +54,12 @@ trait TransformerFSupport[F[_]]:
     */
   def traverse[M, A, B](it: Iterator[A], f: A => F[B])(using fac: Factory[B, M]): F[M] 
 
+  /** Perform traversal like cats traverse
+   * 
+   *  Can be used to handle combination of multiple 'F's in transformers
+   */
+  def traverseF[L[_]: TransformerFSupport, A, B](l: F[A], f: A => L[B]): L[F[B]] 
+
 end TransformerFSupport
 
 object TransformerFSupport:
@@ -61,7 +67,7 @@ object TransformerFSupport:
   transparent inline def support[F[_]](using fs: TransformerFSupport[F]) = fs
 
   given TransformerFSupport[Option] with
-    def pure[A](value: A): Option[A] = Some(value)
+    def pure[A](value: A): Option[A] = Option(value)
     def product[A, B](fa: Option[A], fb: => Option[B]): Option[(A, B)] =
       for
         a <- fa
@@ -79,6 +85,12 @@ object TransformerFSupport:
       
       if (wasNone) None else Some(b.result())
     end traverse
+
+    def traverseF[L[_]: TransformerFSupport, A, B](l: Option[A], f: A => L[B]): L[Option[B]] =
+      l match
+        case Some(v) => support[L].map(f(v), Some(_))
+        case None => support[L].pure(None)
+    end traverseF
 
   given eitherSupport[E]: TransformerFSupport[[T] =>> Either[E, T]] with
     def pure[A](value: A): Either[E, A] = Right(value)
@@ -100,5 +112,10 @@ object TransformerFSupport:
       if (error eq null) Right(b.result()) else error
     end traverse
 
+    def traverseF[L[_]: TransformerFSupport, A, B](l: Either[E, A], f: A => L[B]): L[Either[E, B]] =
+      l match
+        case Right(v) => support[L].map(f(v), Right(_))
+        case Left(l) => support[L].pure(Left(l))
+    end traverseF
 
 end TransformerFSupport

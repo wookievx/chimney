@@ -43,7 +43,7 @@ Chimney provides a compact DSL with which you can define transformation
 rules and transform your objects with as little boilerplate as possible.
 
 ```scala
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 val event = command.into[CoffeeMade]
   .withFieldComputed(_.at, _ => ZonedDateTime.now)

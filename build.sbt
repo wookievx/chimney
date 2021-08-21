@@ -5,6 +5,8 @@ val versions = new {
   val scala213 = "2.13.5"
 }
 
+val scala3Version = "3.0.1"
+
 val settings = Seq(
   version := "0.6.1",
   scalaVersion := versions.scala213,
@@ -55,6 +57,22 @@ val settings = Seq(
   scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 )
 
+val scala3Settings = Seq(
+  testFrameworks += new TestFramework("utest.runner.Framework"),
+  libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.10" % "test",
+  version := "0.1.0",
+  scalaVersion := scala3Version,
+  scalacOptions ++= Seq(
+    // "-Xtarget:1.8",
+    "-encoding", "UTF-8",
+    "-unchecked",
+    "-deprecation",
+    "-feature",
+    "-language:higherKinds",
+    "-Xmax-inlines", "64"
+  )
+)
+
 val dependencies = Seq(
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.2",
@@ -68,8 +86,8 @@ lazy val root = project
   .settings(settings: _*)
   .settings(publishSettings: _*)
   .settings(noPublishSettings: _*)
-  .aggregate(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS)
-  .dependsOn(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS)
+  .aggregate(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS, chimney3)
+  .dependsOn(chimneyJVM, chimneyJS, chimneyCatsJVM, chimneyCatsJS, chimney3)
   .enablePlugins(SphinxPlugin, GhpagesPlugin)
   .settings(
     Sphinx / version := version.value,
@@ -124,6 +142,16 @@ lazy val protos = crossProject(JSPlatform, JVMPlatform)
 lazy val protosJVM = protos.jvm
 lazy val protosJS = protos.js
 
+lazy val chimney3 = project.in(file("chimney3"))
+  // .crossType(CrossType.Pure)
+  .settings(
+    moduleName := "chimney3",
+    name := "chimney3",
+    description := "Scala 3 library for boilerplate free data rewriting "
+  )
+  .settings(scala3Settings: _*)
+  .settings(publishSettings: _*)
+
 
 lazy val publishSettings = Seq(
   organization := "io.scalaland",
@@ -149,6 +177,11 @@ lazy val publishSettings = Seq(
         <id>MateuszKubuszok</id>
         <name>Mateusz Kubuszok</name>
         <url>http://github.com/MateuszKubuszok</url>
+      </developer>
+      <developer>
+        <id>wookievx</id>
+        <name>Łukasz Lampart</name>
+        <url>https://github.com/wookievx</url>
       </developer>
     </developers>
   )

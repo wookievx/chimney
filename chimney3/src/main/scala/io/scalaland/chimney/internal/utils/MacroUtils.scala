@@ -3,12 +3,14 @@ package io.scalaland.chimney.internal.utils
 import scala.quoted.*
 import deriving.*, compiletime.*
 
+import java.time.Instant
+
 object MacroUtils:
 
   inline def getDefaultParams[T]: Map[String, AnyRef] = ${ getDefaultParmasImpl[T] }
   //copied from : https://github.com/dotty-staging/upickle/blob/0213eea95b282b1e961b1d5ad68031365c9a8bb2/implicits/src-3/upickle/implicits/macros.scala
   def getDefaultParmasImpl[T: Type](using Quotes): Expr[Map[String, AnyRef]] =
-    import quotes.reflect._
+    import quotes.reflect.*
     val sym = TypeTree.of[T].symbol
 
     if (sym.isClassDef) {
@@ -40,7 +42,7 @@ object MacroUtils:
   inline def defaultValueExistsIn[T](inline name: Any): Boolean = ${ nameExistsInImpl[T]('name) }
 
   def nameExistsInImpl[T: Type](name: Expr[Any])(using Quotes): Expr[Boolean] =
-    import quotes.reflect._
+    import quotes.reflect.*
     val sym = TypeTree.of[T].symbol
 
     if (sym.isClassDef) {
@@ -65,7 +67,7 @@ object MacroUtils:
   transparent inline def extracNameFromSelector[To, T](inline code: To => T) = ${extractNameFromSelectorImpl('code)}
 
   def extractNameFromSelectorImpl[To: Type, T: Type](code: Expr[To => T])(using Quotes): Expr[String] = 
-    import quotes.reflect._
+    import quotes.reflect.*
     code.asTerm match
      case InlinedLambda(List(ValDef(identVal, _, _)), t@Select(Ident(identExtract), name)) if identVal == identExtract => 
       Expr(name)
@@ -74,7 +76,7 @@ object MacroUtils:
   
   object InlinedLambda:
     def unapply(using Quotes)(arg: quotes.reflect.Term): Option[(List[quotes.reflect.ValDef], quotes.reflect.Term)] = 
-      import quotes.reflect._
+      import quotes.reflect.*
       arg match
         case Inlined(_, _, Lambda(vals, term)) => Some((vals, term))
         case Inlined(_, _, nested) => InlinedLambda.unapply(nested)
@@ -88,7 +90,7 @@ object MacroUtils:
   inline def debug[T](inline any: T): T = ${ printImplMacro('any) }
 
   def printImplMacro[T: Type](any: Expr[T])(using qctx: Quotes): Expr[T] = {
-    import qctx.reflect._
+    import qctx.reflect.*
     println(Printer.TreeShortCode.show(any.asTerm))
     any
   }
@@ -195,6 +197,11 @@ object MacroUtils:
         quotes.reflect.report.throwError("Failed to format string at compile time, internal library error")
   end printfCompileTimeMacro
 
+  inline def reportCompilationTime: Unit = ${reportCompilationTimeMacro}
+
+  def reportCompilationTimeMacro(using Quotes): Expr[Unit] = 
+    println(Instant.now)
+    '{}
 
   private def showAll[Args <: Tuple: Type](using Quotes): List[String] =
     Type.of[Args] match

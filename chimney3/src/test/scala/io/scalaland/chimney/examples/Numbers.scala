@@ -28,7 +28,7 @@ object long {
 }
 
 object ScalesTransformer {
-  import io.scalaland.chimney.dsl._
+  import io.scalaland.chimney.dsl.*
 
   inline given shortToLongGen[F[_], A, B](using sup: TransformerFSupport[F]): TransformerF[F, short.NumScale[A, Nothing], long.NumScale[B]] = 
     summonFrom {

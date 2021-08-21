@@ -1,25 +1,23 @@
 package io.scalaland.chimney.internal.derived
 
-import io.scalaland.chimney._
-import io.scalaland.chimney.dsl._
-import io.scalaland.chimney.internal.utils._
-import io.scalaland.chimney.internal._
+import io.scalaland.chimney.*
+import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.internal.utils.*
+import io.scalaland.chimney.internal.*
 
-import scala.compiletime.ops.int._
-import scala.compiletime._
-import scala.deriving._
-import scala.quoted._
+import scala.compiletime.ops.int.*
+import scala.compiletime.*
+import scala.deriving.*
+import scala.quoted.*
 
 object TransformerDerive:
-  import DeriveUtils._
-  import TransformerCfg._
+  import DeriveUtils.*
+  import TransformerCfg.*
 
   inline def derived[From, To, Config <: Tuple, Flags <: Tuple](config: TransformerDefinition[From, To, Config, Flags]): Transformer[From, To] =
-    MacroUtils.doPrintFCompileTime["Deriving Transformer[%s, %s]", (From, To)]
     deriveConfigured[From, To, ""](configOf(config))
 
   inline def derived[F[_], From, To, Config <: Tuple, Flags <: Tuple](config: TransformerFDefinition[F, From, To, Config, Flags])(using sup: TransformerFSupport[F]): TransformerF[F, From, To] =
-    MacroUtils.doPrintFCompileTime["Deriving Transformer[%s, %s]", (From, To)]
     deriveConfiguredF[F, From, To, ""](configOf(config))
  
   inline def deriveConfigured[From, To, P <: String](inline config: TypeDeriveConfig[_, _, P]): Transformer[From, To] =
@@ -107,8 +105,8 @@ end TransformerDerive
 
 object DeriveProduct:
 
-  import DeriveUtils._
-  import TransformerCfg._
+  import DeriveUtils.*
+  import TransformerCfg.*
 
   inline def handleProduct[From, To](
     inline config: TypeDeriveConfig[_, _, _],
@@ -393,7 +391,7 @@ object DeriveUtils:
   ): TypeDeriveConfig[EmptyTuple, Flags, Path] =
     TypeDeriveConfig(definition.overrides, MacroUtils.getDefaultParams[To], definition.instances)
 
-  import TransformerCfg._
+  import TransformerCfg.*
 
   type ConfigOf[Config <: Tuple, Field] <: TransformerCfg = Config match
     case FieldConst[Field] *: _ => FieldConst[Field]
@@ -415,7 +413,7 @@ object DeriveUtils:
     case _ *: tail => HasAFlag[tail, Flag]
     case EmptyTuple => false
 
-  import scala.compiletime.ops.string._
+  import scala.compiletime.ops.string.*
 
   type Concat[Path <: String, Field] <: String = Field match
     case String => Path + Field

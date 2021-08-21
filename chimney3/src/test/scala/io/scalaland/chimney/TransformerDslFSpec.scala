@@ -1,15 +1,15 @@
 package io.scalaland.chimney
 
-import io.scalaland.chimney.dsl._
-import io.scalaland.chimney.examples._
-import io.scalaland.chimney.examples.trip._
+import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.examples.*
+import io.scalaland.chimney.examples.trip.*
 import io.scalaland.chimney.internal.utils.MacroUtils
 import io.scalaland.chimney.internal.TransformerFlag
-import utest._
+import utest.*
 import scala.collection.mutable.{Queue, ArrayBuffer}
 
-import io.scalaland.chimney.utils.EitherUtils._
-import io.scalaland.chimney.utils.OptionUtils._
+import io.scalaland.chimney.utils.EitherUtils.*
+import io.scalaland.chimney.utils.OptionUtils.*
 
 object TransformerDslFSpec extends TestSuite {
 
@@ -512,6 +512,89 @@ object TransformerDslFSpec extends TestSuite {
       }
     }
 
-  }  
+    "wrapped sealed families" - {
+      import examples.*
+      type E = [t] =>> Either[List[String], t]
+
+      "pure inner transformer" - {
+
+        given intPrinter: Transformer[Int, String] = _.toString
+
+        "F = Option" - {
+          import ScalesTransformer.given
+
+          (short.Zero: short.NumScale[Int, Nothing])
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Zero)
+          (short.Million(4): short.NumScale[Int, Nothing])
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Million("4"))
+          (short.Billion(2): short.NumScale[Int, Nothing])
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Milliard("2"))
+          (short.Trillion(100): short.NumScale[Int, Nothing])
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Billion("100"))
+        }
+
+        "F = Either[List[String], +*]]" - {
+          import ScalesTransformer.given
+
+          (short.Zero: short.NumScale[Int, Nothing])
+            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Zero)
+          (short.Million(4): short.NumScale[Int, Nothing])
+            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Million("4"))
+          (short.Billion(2): short.NumScale[Int, Nothing])
+            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Milliard("2"))
+          (short.Trillion(100): short.NumScale[Int, Nothing])
+            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Billion("100"))
+        }
+      }
+
+      "wrapped inner transformer" - {
+
+        "F = Option" - {
+          given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
+
+          import ScalesTransformer.given
+
+          (short.Zero: short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Zero)
+          (short.Million("4"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Million(4))
+          (short.Billion("2"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Milliard(2))
+          (short.Trillion("100"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Billion(100))
+
+          (short.Million("x"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> None
+          (short.Billion("x"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> None
+          (short.Trillion("x"): short.NumScale[String, Nothing])
+            .transformIntoF[Option, long.NumScale[Int]] ==> None
+        }
+
+        "F = Either[List[String], +*]]" - {
+          given intParserEither: TransformerF[E, String, Int] =
+            _.parseInt.toEither("bad int")
+
+          import ScalesTransformer.given
+
+          (short.Zero: short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Right(long.Zero)
+          (short.Million("4"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Right(long.Million(4))
+          (short.Billion("2"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Right(long.Milliard(2))
+          (short.Trillion("100"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Right(long.Billion(100))
+
+          (short.Million("x"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Left(List("bad int"))
+          (short.Billion("x"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Left(List("bad int"))
+          (short.Trillion("x"): short.NumScale[String, Nothing])
+            .transformIntoF[E, long.NumScale[Int]] ==> Left(List("bad int"))
+        }
+      }
+    }
+  }
 
 }

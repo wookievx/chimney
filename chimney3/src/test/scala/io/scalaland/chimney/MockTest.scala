@@ -1,11 +1,11 @@
 package io.scalaland.chimney
 
-import io.scalaland.chimney.examples._
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.examples.*
+import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.internal.derived.DeriveUtils
 import io.scalaland.chimney.internal.utils.MacroUtils
 import ScalesTransformer.given
-import utest._
+import utest.*
 
 object MockTest extends TestSuite:
 
@@ -30,6 +30,32 @@ object MockTest extends TestSuite:
 
   given intLongOpt: TransformerF[Option, Long, Int] with
     def transform(from: Long): Option[Int] = if from.isValidInt then Some(from.toInt) else None
+
+
+  val compilationTest = {
+    import TransformerDslSpec.RelabelingOfFieldSpec.*
+
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+
+  }
 
 
 end MockTest

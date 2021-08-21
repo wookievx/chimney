@@ -1,17 +1,17 @@
 package io.scalaland.chimney
 
-import io.scalaland.chimney.dsl._
-import io.scalaland.chimney.examples._
+import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.examples.*
 import io.scalaland.chimney.internal.utils.MacroUtils
 import io.scalaland.chimney.internal.TransformerFlag
-import utest._
+import utest.*
 
 object TransformerDslSpec extends TestSuite {
 
   val tests = Tests {
 
     "use given instances directly" - {
-      import Domain1._
+      import Domain1.*
 
       given instance: Transformer[UserName, String] = userNameToStringTransformer
       
@@ -20,7 +20,7 @@ object TransformerDslSpec extends TestSuite {
     }
 
     "use given transformer for nested field" - {
-      import Domain1._
+      import Domain1.*
 
       given instance: Transformer[UserName, String] = userNameToStringTransformer
 
@@ -263,7 +263,7 @@ object TransformerDslSpec extends TestSuite {
       // the same limitation as above, not able to move compilation errors to runtime
 
       "not compile when default parameter values are disabled" - {
-        import DefaultSupportSpecs._
+        import DefaultSupportSpecs.*
         compileError("""
           Foo(10).into[Bar].disableDefaultValues.transform
         """)
@@ -288,7 +288,7 @@ object TransformerDslSpec extends TestSuite {
 
       "between different types: without implicit" - {
         compileError("""
-            import TransformWithRenameSpecs._
+            import TransformWithRenameSpecs.*
             val user: User = User(1, "Kuba", None)
             user.into[UserPL].withFieldRenamed(_.name, _.imie)
                 .withFieldRenamed(_.age, _.wiek)
@@ -301,7 +301,7 @@ object TransformerDslSpec extends TestSuite {
     "support relabelling of fields" - {
 
       "not compile if relabelling modifier is not provided" - {
-        import RelabelingOfFieldSpec._
+        import RelabelingOfFieldSpec.*
 
         compileError("""Foo(10, "something").transformInto[Bar]""")
           .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar or method in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo for \"z\" at ")
@@ -312,7 +312,7 @@ object TransformerDslSpec extends TestSuite {
       }
 
       "not compile if relabelling selectors are invalid" - {
-        import RelabelingOfFieldSpec._
+        import RelabelingOfFieldSpec.*
 
         compileError("""
             Foo(10, "something")
@@ -368,7 +368,7 @@ object TransformerDslSpec extends TestSuite {
       }
 
       "not compile if relabelled - a wrong way" - {
-        import RelabelingOfFieldSpec._
+        import RelabelingOfFieldSpec.*
 
         compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform""")
           .check("", "Automatic derivation for supplied types (from java.lang.String to scala.Int) not supported at .y")
@@ -380,7 +380,7 @@ object TransformerDslSpec extends TestSuite {
     }
 
     "support common data-types" - {
-      import CommonDataTypesSpec._
+      import CommonDataTypesSpec.*
 
       "support scala.Option" - {
         Option(Foo("a")).transformInto[Option[Bar]] ==> Option(Bar("a"))
@@ -545,7 +545,7 @@ object TransformerDslSpec extends TestSuite {
 
     "support polymorphic source/target objects and modifiers" - {
 
-      import Poly._
+      import Poly.*
 
       "monomorphic source to polymorphic target" - {
 
@@ -608,7 +608,7 @@ object TransformerDslSpec extends TestSuite {
     }
 
     "support recursive data structures" - {
-      import RecursiveTypesSpec._
+      import RecursiveTypesSpec.*
 
       "defined by hand" - {
         given fooToBarTransformer: Transformer[Foo, Bar] = (foo: Foo) => {
@@ -722,7 +722,7 @@ object TransformerDslSpec extends TestSuite {
     case class HaveZ(z: String)
 
     def `relabel fields with relabelling modifier` = 
-      MacroUtils.debug(Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform) ==> Bar(10, "something")
+      Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
 
   }
 

@@ -5,7 +5,7 @@ val versions = new {
   val scala213 = "2.13.5"
 }
 
-val scala3Version = "3.0.0-RC3"
+val scala3Version = "3.0.1"
 
 val settings = Seq(
   version := "0.6.1",
@@ -59,7 +59,7 @@ val settings = Seq(
 
 val scala3Settings = Seq(
   testFrameworks += new TestFramework("utest.runner.Framework"),
-  libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.9" % "test",
+  libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.10" % "test",
   version := "0.1.0",
   scalaVersion := scala3Version,
   scalacOptions ++= Seq(

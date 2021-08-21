@@ -1,7 +1,8 @@
 package io.scalaland.chimney
 
-import io.scalaland.chimney.dsl._
-import utest._
+import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.internal.utils.MacroUtils
+import utest.*
 
 object PatcherSpec extends TestSuite {
 
@@ -20,7 +21,7 @@ object PatcherSpec extends TestSuite {
 
     "patch with redundant fields" - {
 
-      import TestDomain._
+      import TestDomain.*
 
       case class PatchWithRedundantField(phone: Phone, address: String)
       // note address doesn't exist in User
@@ -42,7 +43,7 @@ object PatcherSpec extends TestSuite {
 
     "support optional types in patch" - {
 
-      import TestDomain._
+      import TestDomain.*
 
       case class UserPatch(email: Option[Email], phone: Option[Phone])
 
@@ -54,7 +55,7 @@ object PatcherSpec extends TestSuite {
 
     "support mixed optional and regular types" - {
 
-      import TestDomain._
+      import TestDomain.*
 
       case class UserPatch(email: Email, phone: Option[Phone])
       val update = UserPatch(email = Email("updated@example.com"), phone = None)
@@ -65,7 +66,7 @@ object PatcherSpec extends TestSuite {
 
     "optional fields in the patched object overwritten by None" - {
 
-      import TestDomain._
+      import TestDomain.*
 
       case class UserPatch(email: Email, phone: Option[Phone])
       val update = UserPatch(email = Email("updated@example.com"), phone = None)
@@ -77,7 +78,7 @@ object PatcherSpec extends TestSuite {
     // I don't think it is an expected behavior and not supporting it for now
     // "fields of type Option[T] in the patched object not overwritten by None of type Option[Option[T]]" - {
 
-    //   import TestDomain._
+    //   import TestDomain.*
 
     //   case class UserWithOptional(id: Int, email: Email, phone: Option[Phone])
 
@@ -90,7 +91,7 @@ object PatcherSpec extends TestSuite {
 
     "allow ignoring nones in patches" - {
 
-      import TestDomain._
+      import TestDomain.*
 
       case class PhonePatch(phone: Option[Phone])
 
@@ -105,7 +106,7 @@ object PatcherSpec extends TestSuite {
     }
 
     "allow combining multiple updates in a single patch definition" - {
-      import TestDomain._
+      import TestDomain.*
 
       case class IdPatch(id: Option[Int])
       case class PhonePatch(phone: Option[Phone])
@@ -125,7 +126,7 @@ object PatcherSpec extends TestSuite {
     }
 
     "allow combining multiple updates in a single patch definition respecting ignoring optional fields" - {
-      import TestDomain._
+      import TestDomain.*
 
       case class PhonePatch(phone: Option[Phone])
       case class EmailPatch(id: Option[Int], email: Email)
@@ -139,7 +140,7 @@ object PatcherSpec extends TestSuite {
     }
 
     "allow combining multiple updates in a single patch definition respecting redundant fields" - {
-      import TestDomain._
+      import TestDomain.*
 
       case class Name(name: String)
       case class RedundantIdPatch(id: Option[Int], address: String)
@@ -168,6 +169,10 @@ object PatcherSpec extends TestSuite {
     }
 
   }
+
+
+  MacroUtils.doPrintFCompileTime["Finished compiling PatchersSpec", EmptyTuple]
+  MacroUtils.reportCompilationTime
 
 }
 

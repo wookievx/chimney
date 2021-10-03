@@ -211,4 +211,11 @@ object MacroUtils:
         List.empty
   end showAll
 
+  inline def showTermOfCode(inline arg: Any): String = ${showTermOfCodeImpl('arg)}
+
+  private def showTermOfCodeImpl(arg: Expr[Any])(using Quotes): Expr[String] = {
+    import quotes.reflect.*
+    Expr(arg.asTerm.toString)
+  }
+
 end MacroUtils

@@ -17,12 +17,15 @@ object TransformerDerive:
   inline def derived[From, To, Config <: Tuple, Flags <: Tuple](
     config: TransformerDefinition[From, To, Config, Flags]
   ): Transformer[From, To] =
-    deriveConfigured[From, To, ""](configOf(config), constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]])
+    deriveConfigured[From, To, ""](
+      configOf(config),
+      constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]]
+    )
 
   inline def derived[F[_], From, To, Config <: Tuple, Flags <: Tuple](
     config: TransformerFDefinition[F, From, To, Config, Flags]
   )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] =
-    deriveConfiguredF[F, From, To, ""](configOf(config))
+    deriveConfiguredF[F, From, To, ""](configOf(config), constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]])
 
   inline def deriveConfigured[From, To, P <: String](
     inline config: TypeDeriveConfig[_, _, P],
@@ -41,7 +44,7 @@ object TransformerDerive:
         config match
           case '{ $c: TypeDeriveConfig[conf, flags, P] } =>
             val specialInstance =
-              SpecialDerive.deriveSpecialCases[From, To, flags, P]
+              SpecialDerive[flags, P](useBeansGetters.value.getOrElse(false)).deriveSpecialCases[From, To]
 
             val productInstance = (
               Expr.summon[Mirror.ProductOf[From]],
@@ -66,7 +69,9 @@ object TransformerDerive:
             val beanGettersInstance = 
               (useBeansGetters.value, Expr.summon[Mirror.ProductOf[To]]) match
                 case (Some(true), Some(tm)) =>
-                  Some('{BeanGettersDerive.deriveFromJavaBean[From, To]($c, $tm)})
+                  Some('{
+                    BeanGettersDerive.deriveFromJavaBean[From, To]($c, $tm)
+                  })
                 case x =>
                   None
 
@@ -92,16 +97,18 @@ object TransformerDerive:
 
   inline def deriveConfiguredF[F[_], From, To, P <: String](
     inline
-    config: TypeDeriveConfig[_, _, P]
+    config: TypeDeriveConfig[_, _, P],
+    inline useBeansGetters: Boolean
   )(using sup: TransformerFSupport[F]): TransformerF[F, From, To] = ${
-    deriveConfiguredFImpl[F, From, To, P]('config, 'sup)
+    deriveConfiguredFImpl[F, From, To, P]('config, 'sup, 'useBeansGetters)
   }
 
   private def deriveConfiguredFImpl[F[
     _
   ]: Type, From: Type, To: Type, P <: String: Type](
     config: Expr[TypeDeriveConfig[_, _, P]],
-    sup: Expr[TransformerFSupport[F]]
+    sup: Expr[TransformerFSupport[F]],
+    useBeansGetters: Expr[Boolean]
   )(using Quotes): Expr[TransformerF[F, From, To]] =
     Type.of[To] match
       case '[From] =>
@@ -110,8 +117,8 @@ object TransformerDerive:
         config match
           case '{ $c: TypeDeriveConfig[conf, flags, P] } =>
             val specialInstance: Option[Expr[TransformerF[F, From, To]]] =
-              SpecialDerive
-                .deriveSpecialCasesF[F, From, To, flags, P](sup)
+              SpecialDerive[flags, P](useBeansGetters.value.getOrElse(false))
+                .deriveSpecialCasesF[F, From, To](sup)
                 .flatMap { instance =>
                   instance match
                     case '{ $tf: TransformerF[F, From, To] } =>
@@ -151,7 +158,16 @@ object TransformerDerive:
               case _ => None
             }
 
-            (specialInstance orElse productInstance orElse sumInstance)
+            val beanGettersInstance =
+              (useBeansGetters.value, Expr.summon[Mirror.ProductOf[To]]) match
+                case (Some(true), Some(tm)) =>
+                  Some('{
+                    BeanGettersDerive.deriveFromJavaBeanF[F, From, To]($c, $tm)(using $sup)
+                  })
+                case x =>
+                  None
+
+            (specialInstance orElse productInstance orElse sumInstance orElse beanGettersInstance)
               .getOrElse(
                 MacroUtils.reportErrorAtPathMacro(
                   '{ constValue[P] },

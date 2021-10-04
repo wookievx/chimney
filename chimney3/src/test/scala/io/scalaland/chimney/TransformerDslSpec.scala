@@ -744,23 +744,45 @@ object TransformerDslSpec extends TestSuite {
     }
 
     "support conversion from java beans" - {
-      import io.scalaland.chimney.example.JavaBean
+      import io.scalaland.chimney.example.*
+
+      val bean = new JavaBean
+      bean.setId(42)
+      bean.setName(null)
 
       "converting directly with nulls" - {
-
-        val bean = new JavaBean
-        bean.setId(42)
-        bean.setName(null)
-
         bean.into[ScalaBean].enableBeanGetters.transform ==> ScalaBean(42, null)
       }
 
       "converting nulls to Option.None if possible" - {
+        bean.into[ScalaBeanOpt].enableBeanGetters.transform ==> ScalaBeanOpt(
+          Some(42),
+          None
+        )
+      }
+      val javaInput = new java.util.ArrayList[Int]()
+      javaInput.add(1)
+      javaInput.add(11)
+
+      "converting nested java beans to scala classes" - {
+        import scala.jdk.CollectionConverters._
+        val nestingBean = new NestedBean()
         val bean = new JavaBean
         bean.setId(42)
         bean.setName(null)
 
-        bean.into[ScalaBeanOpt].enableBeanGetters.transform ==> ScalaBeanOpt(Some(42), None)
+        nestingBean.setIds(javaInput.asInstanceOf)
+        nestingBean.setNested(bean)
+
+        nestingBean
+          .into[NestedScalaBean]
+          .enableBeanGetters
+          .withFieldComputed(_.ids, _.getIds.asScala.toList)
+          .transform ==> NestedScalaBean(
+          List(1, 11),
+          ScalaBeanOpt(Some(42), None)
+        )
+
       }
     }
 
@@ -947,4 +969,9 @@ case class ScalaBean(
 case class ScalaBeanOpt(
   id: Option[Int],
   name: Option[String]
+)
+
+case class NestedScalaBean(
+  ids: List[Int],
+  nested: ScalaBeanOpt
 )

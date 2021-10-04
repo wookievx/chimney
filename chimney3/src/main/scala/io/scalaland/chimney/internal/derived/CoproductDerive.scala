@@ -146,7 +146,8 @@ object CoproductDerive:
                         to,
                         flags,
                         path Concat "." Concat fromName
-                      ](defaultDefinitionWithFlags)
+                      ](defaultDefinitionWithFlags),
+                      constValue[HasAFlag[flags, TransformerFlag.BeanGetters]]
                     )
                     .asInstanceOf[TransformerF[F, From, To]]
                     .transform(from)

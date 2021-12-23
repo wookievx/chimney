@@ -83,7 +83,8 @@ object CoproductDerive:
                         flags,
                         path Concat "." Concat fromName
                       ](defaultDefinitionWithFlags),
-                      constValue[HasAFlag[flags, TransformerFlag.BeanGetters]]
+                      constValue[HasAFlag[flags, TransformerFlag.BeanGetters]],
+                      constValue[HasAFlag[flags, TransformerFlag.BeanSetters]]
                     )
                     .asInstanceOf[Transformer[From, To]]
                     .transform(from)

@@ -105,7 +105,7 @@ object BeanGettersDerive:
   ): FTo =
     inline config match
       case c: TypeDeriveConfig[_, flags, path] =>
-        inline ClassAccessMacros.selectBean(
+        inline ClassAccessMacros.selectBeanGetter(
           typedInput,
           constValue[LabelTo]
         ) match
@@ -129,7 +129,8 @@ object BeanGettersDerive:
                     ](
                       defaultDefinitionWithFlags
                     ),
-                    constValue[HasAFlag[flags, TransformerFlag.BeanGetters]]
+                    constValue[HasAFlag[flags, TransformerFlag.BeanGetters]],
+                    constValue[HasAFlag[flags, TransformerFlag.BeanSetters]]
                   )
                 transformer.transform(res.get)
           case None =>

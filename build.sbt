@@ -5,7 +5,7 @@ val versions = new {
   val scala213 = "2.13.5"
 }
 
-val scala3Version = "3.0.1"
+val scala3Version = "3.1.0"
 
 val settings = Seq(
   version := "0.6.1",

@@ -529,7 +529,8 @@ object SpecialDerive:
         '{
           TransformerDerive.deriveConfigured[EF, ET, Path](
             configOfAtPath[ET, Flags, Path](defaultDefinitionWithFlags),
-            false
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 
@@ -581,7 +582,8 @@ object SpecialDerive:
         '{
           TransformerDerive.deriveConfigured[F1, T1, Path](
             configOfAtPath[T1, Flags, Path](defaultDefinitionWithFlags),
-            false
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 
@@ -591,7 +593,8 @@ object SpecialDerive:
         '{
           TransformerDerive.deriveConfigured[F2, T2, Path](
             configOfAtPath[T2, Flags, Path](defaultDefinitionWithFlags),
-            false
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 

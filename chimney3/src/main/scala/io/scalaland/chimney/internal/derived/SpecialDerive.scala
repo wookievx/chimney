@@ -471,7 +471,7 @@ class SpecialDerive[Flags <: Tuple: Type, Path <: String: Type](
     Expr.summon[Factory[(B1, B2), To]] match
       case Some(factory) =>
         Some(
-          deriveSpecialK2Impl[From, To, A1, A2, B1, B2](
+          deriveSpecialK2Impl[From, To, A1, A2, B1, B2, Flags, Path](
             (instance1, instance2) =>
               '{ from =>
                 val b = $factory.newBuilder
@@ -527,7 +527,8 @@ class SpecialDerive[Flags <: Tuple: Type, Path <: String: Type](
         '{
           TransformerDerive.deriveConfigured[EF, ET, Path](
             configOfAtPath[ET, Flags, Path](defaultDefinitionWithFlags),
-            ${Expr(enableBeanGetters)}
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 
@@ -578,7 +579,8 @@ class SpecialDerive[Flags <: Tuple: Type, Path <: String: Type](
         '{
           TransformerDerive.deriveConfigured[F1, T1, Path](
             configOfAtPath[T1, Flags, Path](defaultDefinitionWithFlags),
-            ${Expr(enableBeanGetters)}
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 
@@ -588,7 +590,8 @@ class SpecialDerive[Flags <: Tuple: Type, Path <: String: Type](
         '{
           TransformerDerive.deriveConfigured[F2, T2, Path](
             configOfAtPath[T2, Flags, Path](defaultDefinitionWithFlags),
-            ${Expr(enableBeanGetters)}
+            constValue[HasAFlag[Flags, TransformerFlag.BeanGetters]],
+            constValue[HasAFlag[Flags, TransformerFlag.BeanSetters]]
           )
         }
 

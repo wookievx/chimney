@@ -134,7 +134,7 @@ object MacroUtils:
   def showTypeExpr[T: Type](using quotes: Quotes): Expr[String] =
     showTypeImpl[T]
 
-  private def showTypeImpl[T: Type](using quotes: Quotes): Expr[String] =
+  def showTypeImpl[T: Type](using quotes: Quotes): Expr[String] =
     Expr(Type.show[T])
 
   inline def showType[T]: Unit = ${ printType[T] }

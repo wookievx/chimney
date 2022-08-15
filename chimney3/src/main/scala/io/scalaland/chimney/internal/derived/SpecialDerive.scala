@@ -471,7 +471,7 @@ class SpecialDerive[Flags <: Tuple: Type, Path <: String: Type](
     Expr.summon[Factory[(B1, B2), To]] match
       case Some(factory) =>
         Some(
-          deriveSpecialK2Impl[From, To, A1, A2, B1, B2, Flags, Path](
+          deriveSpecialK2Impl[From, To, A1, A2, B1, B2](
             (instance1, instance2) =>
               '{ from =>
                 val b = $factory.newBuilder

@@ -786,16 +786,16 @@ object TransformerDslSpec extends TestSuite {
       }
     }
 
-    "suppot conversion to java beans" - {
-      import io.scalaland.chimney.example.JavaBean
-
-      "converting directly" - {
-        val bean = ScalaBean(42, "testing")
-        val result = bean.into[JavaBean].enableBeanSetters.transform
-        result.getId ==> 42
-        result.getName ==> "testing"
-      }
-    }
+//    "suppot conversion to java beans" - {
+//      import io.scalaland.chimney.example.JavaBean
+//
+//      "converting directly" - {
+//        val bean = ScalaBean(42, "testing")
+//        val result = bean.into[JavaBean].enableBeanSetters.transform
+//        result.getId ==> 42
+//        result.getName ==> "testing"
+//      }
+//    }
 
   }
 

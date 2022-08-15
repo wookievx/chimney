@@ -251,7 +251,7 @@ object BeanGettersDerive:
   ): F[FTo] =
     inline config match
       case c: TypeDeriveConfig[_, flags, path] =>
-        inline ClassAccessMacros.selectBean(
+        inline ClassAccessMacros.selectBeanGetter(
           typedInput,
           constValue[LabelTo]
         ) match
@@ -264,7 +264,7 @@ object BeanGettersDerive:
               .attemptSummonInstance[TransformerF[F, fTo, FTo]] match
               case Some(transformer: TransformerF[F, fTo, FTo]) =>
                 transformer.transform(res.get)
-              case _ =>
+              case _ =>                
                 val transformer = TransformerDerive
                   .deriveConfiguredF[
                     F,

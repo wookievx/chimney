@@ -787,7 +787,7 @@ object TransformerDslFSpec extends TestSuite {
       }
     }
 
-    "support conversion from java beans" - {
+    /*"support conversion from java beans" - {
       import io.scalaland.chimney.example.*
 
       val bean = new JavaBean
@@ -799,10 +799,10 @@ object TransformerDslFSpec extends TestSuite {
         bean.intoF[Option, ScalaBean].enableBeanGetters.transform ==> Some(
           ScalaBean(42, null)
         )
-        bean
-          .intoF[[t] =>> Either[String, t], ScalaBean]
-          .enableBeanGetters
-          .transform ==> Right(ScalaBean(42, null))
+        // bean
+        //   .intoF[[t] =>> Either[String, t], ScalaBean]
+        //   .enableBeanGetters
+        //   .transform ==> Right(ScalaBean(42, null))
       }
 
       "converting nulls to Option.None if possible" - {
@@ -838,7 +838,7 @@ object TransformerDslFSpec extends TestSuite {
           )
 
       }
-    }
+    }*/
   }
 
 }

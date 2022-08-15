@@ -252,6 +252,7 @@ object ClassAccessMacros:
     import quotes.reflect.*
     val sym = TypeTree.of[C].symbol
     val constructor = sym.primaryConstructor
+    report.info(s"Got methods: ${sym.declaredMethods.map(_.signature)}")
     if (constructor.exists) then
       Some(
         Apply(
@@ -263,7 +264,7 @@ object ClassAccessMacros:
 
   end getEmptyInstanceImpl
 
-  private object SimpleAccessor:
+  object SimpleAccessor:
     def unapply(using Quotes)(
       arg: quotes.reflect.Symbol
     ): Option[String] =
@@ -277,7 +278,7 @@ object ClassAccessMacros:
           None
   end SimpleAccessor
 
-  private object Setter:
+  object Setter:
     def unapply(using Quotes)(
       arg: quotes.reflect.Symbol
     ): Option[String] =

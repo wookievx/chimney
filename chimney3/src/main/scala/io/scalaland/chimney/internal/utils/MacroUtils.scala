@@ -113,7 +113,7 @@ object MacroUtils:
 
   def printImplMacro[T: Type](any: Expr[T])(using qctx: Quotes): Expr[T] = {
     import qctx.reflect.*
-    report.info(Printer.TreeShortCode.show(any.asTerm).toString)
+    report.info(Printer.TreeCode.show(any.asTerm).toString)
     any
   }
 

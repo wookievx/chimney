@@ -28,8 +28,8 @@ object MockTest extends TestSuite:
       "correctly derive definition with new macros" - {
         import TransformerDslSpec.RelabelingOfFieldSpec.*
         import internal.derived.TransformerDerive
-        val t = TransformerDerive.derivedNew(defaultDefinition[Foo, Bar].withFieldRenamed(_.y, _.z))
-        val tComputed = TransformerDerive.derivedNew(defaultDefinition[Foo, Bar].withFieldComputed(_.z, foo => s"Got $foo"))
+        val t = TransformerDerive.derived(defaultDefinition[Foo, Bar].withFieldRenamed(_.y, _.z))
+        val tComputed = TransformerDerive.derived(defaultDefinition[Foo, Bar].withFieldComputed(_.z, foo => s"Got $foo"))
         t.transform(Foo(10, "something")) ==> Bar(10, "something")
         tComputed.transform(Foo(10, "something")) ==> Bar(10, "Got Foo(10,something)")
       }
@@ -37,7 +37,7 @@ object MockTest extends TestSuite:
       "correctly convert collections with new macros" - {
         import TransformerDslSpec.RelabelingOfFieldSpec.*
         import internal.derived.TransformerDerive
-        val t = MacroUtils.debug(TransformerDerive.derivedNew(defaultDefinition[List[Foo], Array[Foo]]))
+        val t = TransformerDerive.derived(defaultDefinition[List[Foo], Array[Foo]])
         t.transform(List(Foo(10, "something"), Foo(20, "nothing"))) ==> Array(Foo(10, "something"), Foo(20, "nothing"))
       }
 
@@ -48,6 +48,17 @@ object MockTest extends TestSuite:
 
         t.transform(Source.First("Anything")) ==> Target.Third(42)
         t.transform(Source.Second(420)) ==> Target.Second(420)
+      }
+
+      "correctly convert special cases" - {
+        given intPrinter: Transformer[Int, String] = _.toString
+
+        10.transformIntoF[Option, Option[String]] ==> Some(Some("10"))
+        (null: String).transformIntoF[Option, Option[String]] ==> Some(None)
+
+        type E = [t] =>> Either[List[String], t]
+        10.transformIntoF[E, Option[String]] ==> Right(Some("10"))
+        (null: String).transformIntoF[E, Option[String]] ==> Right(None)
       }
     }
   }
@@ -96,9 +107,7 @@ object MockTest extends TestSuite:
 
   def exampleEnum = {
     import internal.derived.TransformerDerive
-    MacroUtils.debug(
-      TransformerDerive.derivedNew(defaultDefinition[Source, Target].withCoproductInstance[Source.First, Target.Third](_ => Target.Third(42)))
-    )
+    TransformerDerive.derived(defaultDefinition[Source, Target].withCoproductInstance[Source.First, Target.Third](_ => Target.Third(42)))
   }
 
 end MockTest

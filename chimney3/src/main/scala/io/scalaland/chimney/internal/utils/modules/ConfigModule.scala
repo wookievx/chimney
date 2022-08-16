@@ -212,8 +212,8 @@ trait ConfigModule:
   )
     def hasAFlag[Flag <: TransformerFlag: Type]: Boolean =
       hasAFlagImpl[Flags, Flag]
-    def inherited[A: Type]: TransformerDefinitionMaterialized[Flags] =
-      TransformerDefinitionMaterialized(
+    def inherited[A: Type]: TransformerFDefinitionMaterialized[Flags] =
+      TransformerFDefinitionMaterialized(
         List.empty,
         summonDefaults[A]
       )
@@ -227,10 +227,9 @@ trait ConfigModule:
     //converts maps to arrays for easy index access, should be sufficient optimization and balance between optimization
     //and generated code quality
     def optimizedConfig[Config <: Tuple: Type](
-      definition: Expr[TransformerDefinition[?, ?, Config, ?]]
+      overrides: Expr[Map[String, Any]],
+      instances: Expr[Map[(String, String), Any]]
     ): OptimizedConfig =
-      val overrides = '{ $definition.overrides }
-      val instances = '{ $definition.instances }
       def implement[Config <: Tuple: Type](
         overridesBuild: Expr[mutable.ArrayBuilder[Any]],
         instancesBuild: Expr[mutable.ArrayBuilder[Any]]
@@ -307,6 +306,7 @@ trait ConfigModule:
   private def summonDefaults[A: Type]: Option[Map[String, Term]] =
     val symbol = TypeTree.of[A].symbol
     if (symbol.isClassDef) {
+      val names = for p <- symbol.caseFields if p.flags.is(Flags.HasDefault) yield p.name
       val companion = symbol.companionClass
       val classDefinition: Option[ClassDef] =
         try {
@@ -320,9 +320,9 @@ trait ConfigModule:
           for
             case deff @ DefDef(name, _, _, _) <- body.view
             if name.startsWith("$lessinit$greater$default")
-          yield (name, Ref(deff.symbol))
+          yield Ref(deff.symbol)
 
-        defaultParams.toMap
+        names.zip(defaultParams).toMap
       }
     } else {
       None

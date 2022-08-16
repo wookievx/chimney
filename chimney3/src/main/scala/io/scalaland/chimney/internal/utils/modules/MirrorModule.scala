@@ -18,27 +18,23 @@ trait MirrorModule:
 
     def fromMirror(mirror: Expr[Mirror.Product]): ProductMirror = {
       val mirrorTpe = mirror.asTerm.tpe.widen
-      val labels = findMemberType(mirrorTpe, "MirroredElemLabels").getOrElse(
-        report.errorAndAbort(
-          "Mirror missing MirroredElemLabels, should not happen"
-        )
-      )
-      val elemTypes = findMemberType(mirrorTpe, "MirroredElemTypes")
-        .getOrElse(
-          report.errorAndAbort(
-            "Mirror missing MirroredElemTypes, should not happen"
-          )
-        )
-        .pipe(tupleTypeElements)
-      val labelValues = tupleTypeElements(labels).map { repr =>
+      val labels = findMemberType(mirrorTpe, "MirroredElemLabels")
+      val elemTypes =
+        findMemberType(mirrorTpe, "MirroredElemTypes").map(tupleTypeElements)
+      val labelValues = labels.map(tupleTypeElements(_).map { repr =>
         repr.asType match
           case '[t] =>
             Type.valueOfConstant[t] match
               case Some(l: String) => l
               case l => report.errorAndAbort(s"Illegal label const value: $l")
-      }
+      })
 
-      ProductMirror(labelValues.zip(elemTypes).toMap)
+      labelValues
+        .zip(elemTypes)
+        .map((labelValues, elemTypes) =>
+          ProductMirror(labelValues.zip(elemTypes).toMap)
+        )
+        .getOrElse(ProductMirror(Map.empty))
     }
 
   case class CoproductMirror[T](
@@ -66,9 +62,10 @@ trait MirrorModule:
 
       val labelValues = tupleTypeElements(labels).map { repr =>
         repr.asType match
-          case '[t] => Type.valueOfConstant[t] match
-            case Some(l: String) => l
-            case l => report.errorAndAbort(s"Illegal label const value: $l")
+          case '[t] =>
+            Type.valueOfConstant[t] match
+              case Some(l: String) => l
+              case l => report.errorAndAbort(s"Illegal label const value: $l")
       }
 
       CoproductMirror(

@@ -26,9 +26,11 @@ class TransformerDeriveMacros(val quotes: Quotes)
     Flags <: Tuple: Type
   ](
     source: Expr[A],
-    definition: Expr[TransformerDefinition[A, B, Conf, Flags]]
+    overrides: Expr[Array[Any]],
+    instances: Expr[Array[Any]]
   ): Expr[B] =
-    val materialized = TransformerDefinitionMaterialized.materialize(definition)
+    val materialized =
+      TransformerDefinitionMaterialized.materialize[A, Conf, Flags](overrides, instances)
     deriveTransformer[A, B, Flags](source, materialized)
   end deriveTransformerMacro
 
@@ -63,8 +65,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
                 productMirrorB
               )
             )
-          else
-            None
+          else None
           end if
         case _ =>
           None
@@ -85,7 +86,8 @@ class TransformerDeriveMacros(val quotes: Quotes)
         case _ =>
           None
 
-    val containerLikeResult: Option[Expr[B]] = deriveAllContainerLike[A, B, Flags](source, materialized)
+    val containerLikeResult: Option[Expr[B]] =
+      deriveAllContainerLike[A, B, Flags](source, materialized)
 
     productResult orElse coproductResult orElse containerLikeResult getOrElse
       report.errorAndAbort(
@@ -102,8 +104,20 @@ object TransformerDeriveMacros:
     Conf <: Tuple: Type,
     Flags <: Tuple: Type
   ](
-    source: Expr[A],
     definition: Expr[TransformerDefinition[A, B, Conf, Flags]]
-  )(using Quotes): Expr[B] =
-    TransformerDeriveMacros(quotes).deriveTransformerMacro(source, definition)
+  )(using Quotes): Expr[Transformer[A, B]] =
+    val macros = TransformerDeriveMacros(quotes)
+    val optimizedConfig = macros.OptimizedConfig.optimizedConfig[Conf](definition)
+    '{
+      new Transformer[A, B]:
+        private val overridesValues = ${ optimizedConfig.overrides }
+        private val instancesValues = ${ optimizedConfig.instances }
+        override def transform(from: A): B = ${
+          macros.deriveTransformerMacro[A, B, Conf, Flags](
+            '{ from },
+            '{ overridesValues },
+            '{ instancesValues }
+          )
+        }
+    }
 end TransformerDeriveMacros

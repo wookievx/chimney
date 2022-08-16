@@ -16,13 +16,7 @@ object TransformerDerive:
 
   inline def derivedNew[From, To, Config <: Tuple, Flags <: Tuple](
     config: TransformerDefinition[From, To, Config, Flags]
-  ): Transformer[From, To] = new:
-    override def transform(from: From): To = doTransform(from, config)
-
-  private inline def doTransform[From, To, Config <: Tuple, Flags <: Tuple](
-    from: From,
-    config: TransformerDefinition[From, To, Config, Flags]
-  ): To = ${TransformerDeriveMacros.deriveTransformerMacro[From, To, Config, Flags]('{from}, '{config})}
+  ): Transformer[From, To] = ${TransformerDeriveMacros.deriveTransformerMacro[From, To, Config, Flags]('{config})}
 
   inline def derived[From, To, Config <: Tuple, Flags <: Tuple](
     config: TransformerDefinition[From, To, Config, Flags]

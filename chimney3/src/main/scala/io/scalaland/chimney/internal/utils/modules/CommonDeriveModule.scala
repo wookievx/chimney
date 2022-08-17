@@ -31,9 +31,26 @@ trait CommonDeriveModule:
     val defaults = notProvidedDefaults(config, regularFields.toSet)
 
     val (defaultsNames, defaultList) = defaults.getOrElse(List.empty).unzip
-    if verifyAllFieldsSet(regularFields, defaultsNames, targetFields) then
-      regularValues ::: defaultList
-    else report.errorAndAbort(s"Missing value for some fields in target")
+
+    val (optionNoneNames, optionNoneList) = notProvidedOptions(
+      config,
+      regularFields.toSet ++ defaultsNames,
+      targetFields
+    ).getOrElse(List.empty).unzip
+
+    val fieldsNotSet = verifyAllFieldsSet(
+      regularFields,
+      defaultsNames,
+      optionNoneNames,
+      targetFields
+    )
+
+    if fieldsNotSet.isEmpty then
+      regularValues ::: defaultList ::: optionNoneList
+    else
+      report.errorAndAbort(
+        s"Missing value for fields ${fieldsNotSet.mkString(", ")} in target"
+      )
     end if
   end deriveFromFields
 
@@ -97,16 +114,32 @@ trait CommonDeriveModule:
         )
         .toList
 
-    val defaults = notProvidedDefaultsF(config, definedFields.view.map(_.name).toSet)
+    val definedFieldsNames = definedFields.view.map(_.name).toSet
+
+    val defaults =
+      notProvidedDefaultsF(config, definedFieldsNames)
 
     val (defaultsNames, defaultList) = defaults.getOrElse(List.empty).unzip
-    if verifyAllFieldsSet(
-        definedFields.map(_.name),
-        defaultsNames,
-        targetFields
+
+    val (optionNoneNames, optionNoneList) = notProvidedOptionsF(
+      config,
+      definedFieldsNames ++ defaultsNames,
+      targetFields
+    ).getOrElse(List.empty).unzip
+
+    val fieldsNotSet = verifyAllFieldsSet(
+      definedFields.map(_.name),
+      defaultsNames,
+      optionNoneNames,
+      targetFields
+    )
+
+    if fieldsNotSet.isEmpty then
+      constValueFields ::: defaultList ::: optionNoneList
+    else
+      report.errorAndAbort(
+        s"Missing value for fields ${fieldsNotSet.mkString(", ")} in target"
       )
-    then constValueFields ::: defaultList
-    else report.errorAndAbort(s"Missing value for some fields in target")
     end if
 
   end deriveFromComputedFields
@@ -118,9 +151,23 @@ trait CommonDeriveModule:
     val defaults = notProvidedDefaultsF(config, Set.empty)
 
     val (defaultsNames, defaultList) = defaults.getOrElse(List.empty).unzip
-    if verifyAllFieldsSet(List.empty, defaultsNames, targetFields) then
-      defaultList
-    else report.errorAndAbort(s"Missing value for some fields in target")
+    val (optionNoneNames, optionNoneList) =
+      notProvidedOptionsF(config, defaultsNames.toSet, targetFields)
+        .getOrElse(List.empty)
+        .unzip
+
+    val fieldsNotSet = verifyAllFieldsSet(
+      List.empty,
+      defaultsNames,
+      optionNoneNames,
+      targetFields
+    )
+
+    if fieldsNotSet.isEmpty then defaultList ::: optionNoneList
+    else
+      report.errorAndAbort(
+        s"Missing value for fields ${fieldsNotSet.mkString(", ")} in target"
+      )
     end if
   end deriveFromOnlyDefaults
 
@@ -135,7 +182,7 @@ trait CommonDeriveModule:
         case Some(transformer) =>
           '{ $transformer.transform($from) }
         case None =>
-          deriveTransformer[A, B, Flags](from, config.inherited[A])
+          deriveTransformer[A, B, Flags](from, config.inherited[B])
     end if
   end elemWiseTransform
 
@@ -158,7 +205,7 @@ trait CommonDeriveModule:
         A,
         B,
         Flags
-      ](from, config.inherited[A], support)
+      ](from, config.inherited[B], support)
     end if
   end elemWiseTransformF
 
@@ -180,9 +227,9 @@ trait CommonDeriveModule:
               .isRenamed(field.name)
               .getOrElse(field.name)
               .pipe(sourceMap.get)
-              .map(sourceField =>
+              .map { sourceField =>
                 accessField[A, Flags](source, config, sourceField, field)
-              )
+              }
         appliedExpr.map(field -> _)
     }.toMap
     fieldValues.view.map { (targetField, value) =>
@@ -244,7 +291,7 @@ trait CommonDeriveModule:
       config.defaults.map(defaults =>
         defaults.view
           .filterNot((name, _) => providedFields.contains(name))
-          .map((name, value) => name -> NamedArg(name, value))
+          .map((name, value) => name -> NamedArg(name, value.asTerm))
           .toList
       )
     else None
@@ -259,12 +306,44 @@ trait CommonDeriveModule:
       config.defaults.map(defaults =>
         defaults.view
           .filterNot((name, _) => providedFields.contains(name))
-          .map((name, value) => name -> NamedArg(name, value))
+          .map((name, value) => name -> NamedArg(name, value.asTerm))
           .toList
       )
     else None
     end if
   end notProvidedDefaultsF
+
+  private def notProvidedOptions[Flags <: Tuple: Type](
+    config: TransformerDefinitionMaterialized[Flags],
+    providedFields: Set[String],
+    targetFields: List[TargetField]
+  ): Option[List[(String, Term)]] =
+    if config.hasAFlag[TransformerFlag.OptionDefaultsToNone] then
+      Some(
+        targetFields.view
+          .filterNot(f => providedFields.contains(f.name))
+          .flatMap(f => f.setNone.map(f.name -> _))
+          .toList
+      )
+    else None
+    end if
+  end notProvidedOptions
+
+  private def notProvidedOptionsF[Flags <: Tuple: Type](
+    config: TransformerFDefinitionMaterialized[Flags],
+    providedFields: Set[String],
+    targetFields: List[TargetField]
+  ): Option[List[(String, Term)]] =
+    if config.hasAFlag[TransformerFlag.OptionDefaultsToNone] then
+      Some(
+        targetFields.view
+          .filterNot(f => providedFields.contains(f.name))
+          .flatMap(f => f.setNone.map(f.name -> _))
+          .toList
+      )
+    else None
+    end if
+  end notProvidedOptionsF
 
   private def castValueToFieldType(field: TargetField)(
     value: Expr[Any]
@@ -295,15 +374,14 @@ trait CommonDeriveModule:
   private def verifyAllFieldsSet(
     regularFields: List[String],
     defaults: List[String],
+    notProvidedOptions: List[String],
     targetFields: List[TargetField]
-  ): Boolean =
-    val fieldsSet = regularFields.toSet ++ defaults
-    val isCorrect = targetFields.forall(f =>
-      fieldsSet.contains(f.name) || {
-        report.error(s"Missing value for field $f"); false
-      }
-    )
-    isCorrect
+  ): List[String] =
+    val fieldsSet = regularFields.toSet ++ defaults ++ notProvidedOptions
+    targetFields.view
+      .filterNot(f => fieldsSet.contains(f.name))
+      .map(_.name)
+      .toList
   end verifyAllFieldsSet
 
   private def accessFieldF[F[_]: Type, A: Type, Flags <: Tuple: Type](

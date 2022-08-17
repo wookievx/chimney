@@ -95,6 +95,24 @@ trait FieldModule:
             val setter = findSetterIn[b](methodName)
             Apply(Select(target, setter), List(value.asTerm))
 
+    def setNone: Option[Term] = this match
+      case Simple(name, tpe) =>
+        tpe.asType match
+          case '[Option[b]] =>
+            Some(NamedArg(name, '{ Option.empty[b] }.asTerm))
+          case '[t] =>
+            println(s"Got tpe of the field: ${Type.show[t]}")
+            None
+      case BeanField(_, methodName, tpe, target) =>
+        tpe.asType match
+          case '[Option[b]] =>
+            val setter = findSetterIn[b](methodName)
+            Some(
+              Apply(Select(target, setter), List('{ Option.empty[b] }.asTerm))
+            )
+          case _ =>
+            None
+
   end TargetField
 
   object TargetField:
@@ -123,7 +141,7 @@ trait FieldModule:
     val sym = TypeTree.of[A].symbol
     val methods: List[Symbol] = sym.declaredMethods
     methods
-      .collectFirst { case s @ SimpleAccessor(name) => s }
+      .collectFirst { case s @ SimpleAccessor(`name`) => s }
       .getOrElse(
         report.errorAndAbort(s"Source class missing method for field: $name")
       )

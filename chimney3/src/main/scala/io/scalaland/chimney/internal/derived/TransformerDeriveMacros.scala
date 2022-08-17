@@ -30,7 +30,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
     instances: Expr[Array[Any]]
   ): Expr[B] =
     val materialized =
-      TransformerDefinitionMaterialized.materialize[A, Conf, Flags](
+      TransformerDefinitionMaterialized.materialize[B, Conf, Flags](
         overrides,
         instances
       )
@@ -50,7 +50,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
     support: Expr[TransformerFSupport[F]]
   ): Expr[F[B]] =
     val materialized =
-      TransformerFDefinitionMaterialized.materialize[A, Conf, Flags](
+      TransformerFDefinitionMaterialized.materialize[B, Conf, Flags](
         overrides,
         instances
       )
@@ -65,7 +65,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
     source: Expr[A],
     materialized: TransformerDefinitionMaterialized[Flags]
   ): Expr[B] =
-    val productResult: Option[Expr[B]] =
+    def productResult: Option[Expr[B]] =
       (Expr.summon[Mirror.ProductOf[A]], Expr.summon[Mirror.ProductOf[B]]) match
         case (Some(mirrorA), Some(mirrorB)) =>
           val productMirrorA = ProductMirror.fromMirror(mirrorA)
@@ -93,7 +93,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
         case _ =>
           None
 
-    val coproductResult: Option[Expr[B]] =
+    def coproductResult: Option[Expr[B]] =
       (Expr.summon[Mirror.SumOf[A]], Expr.summon[Mirror.SumOf[B]]) match
         case (Some(mirrorA), Some(mirrorB)) =>
           val coproductMirrorA = CoproductMirror.fromMirror(mirrorA)
@@ -109,10 +109,12 @@ class TransformerDeriveMacros(val quotes: Quotes)
         case _ =>
           None
 
-    val containerLikeResult: Option[Expr[B]] =
+    def containerLikeResult: Option[Expr[B]] =
       deriveAllContainerLike[A, B, Flags](source, materialized)
 
-    productResult orElse coproductResult orElse containerLikeResult getOrElse
+    val derivationResult = containerLikeResult orElse productResult orElse coproductResult
+
+    derivationResult getOrElse
       report.errorAndAbort(
         s"Transformation from ${Type.show[A]} to ${Type.show[B]} not supported in chimney"
       )
@@ -128,7 +130,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
     materialized: TransformerFDefinitionMaterialized[Flags],
     support: Expr[TransformerFSupport[F]]
   ): Expr[F[B]] =
-    val productResult: Option[Expr[F[B]]] =
+    def productResult: Option[Expr[F[B]]] =
       (Expr.summon[Mirror.ProductOf[A]], Expr.summon[Mirror.ProductOf[B]]) match
         case (Some(mirrorA), Some(mirrorB)) =>
           val productMirrorA = ProductMirror.fromMirror(mirrorA)
@@ -158,7 +160,7 @@ class TransformerDeriveMacros(val quotes: Quotes)
         case _ =>
           None
 
-    val coproductResult: Option[Expr[F[B]]] =
+    def coproductResult: Option[Expr[F[B]]] =
       (Expr.summon[Mirror.SumOf[A]], Expr.summon[Mirror.SumOf[B]]) match
         case (Some(mirrorA), Some(mirrorB)) =>
           val coproductMirrorA = CoproductMirror.fromMirror(mirrorA)
@@ -175,10 +177,12 @@ class TransformerDeriveMacros(val quotes: Quotes)
         case _ =>
           None
 
-    val containerLikeResult: Option[Expr[F[B]]] =
+    def containerLikeResult: Option[Expr[F[B]]] =
       deriveAllContainerLikeF[F, A, B, Flags](source, materialized, support)
 
-    productResult orElse coproductResult orElse containerLikeResult getOrElse
+    val derivationResult = containerLikeResult orElse productResult orElse coproductResult
+
+    derivationResult getOrElse
       report.errorAndAbort(
         s"Transformation from ${Type.show[A]} to ${Type.show[B]} not supported in chimney"
       )

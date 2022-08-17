@@ -824,11 +824,13 @@ object TransformerDslSpec extends TestSuite {
 
     def `field does not exists - the source-single` =
       Foo(10).transformInto[Bar] ==> Bar(10, 30L)
-    def `field does not exists - the source-sequence` = Seq(Foo(30), Foo(40))
-      .transformInto[Seq[Bar]] ==> Seq(Bar(30, 30L), Bar(40, 30L))
+    def `field does not exists - the source-sequence` = /*Seq(Foo(30), Foo(40))
+      .transformInto[Seq[Bar]] ==> Seq(Bar(30, 30L), Bar(40, 30L))*/
+      ???
 
     def `field does not exists - nested object` =
-      Baah(10, Foo(300)).transformInto[Baahr] ==> Baahr(10, Bar(300, 30L))
+//      Baah(10, Foo(300)).transformInto[Baahr] ==> Baahr(10, Bar(300, 30L))
+      ???
 
     def `field exists - the source-single` =
       Bar(100, 200L).transformInto[Baz] ==> Baz(100, 200L)

@@ -111,11 +111,11 @@ trait CollectionDeriveModule:
   ): Option[Expr[IB]] =
     Type.of[IB] match
       case '[Array[b]] =>
-        Some(deriveIterable[A, b, IA, IB, Flags](from, config, toIterator))
+        deriveIterable[A, b, IA, IB, Flags](from, config, toIterator)
       case '[IArray[b]] =>
-        Some(deriveIterable[A, b, IA, IB, Flags](from, config, toIterator))
+        deriveIterable[A, b, IA, IB, Flags](from, config, toIterator)
       case '[IterableOnce[b]] =>
-        Some(deriveIterable[A, b, IA, IB, Flags](from, config, toIterator))
+        deriveIterable[A, b, IA, IB, Flags](from, config, toIterator)
       case _ =>
         None
   end deriveIterableExtract
@@ -134,31 +134,25 @@ trait CollectionDeriveModule:
   ): Option[Expr[F[IB]]] =
     Type.of[IB] match
       case '[Array[b]] =>
-        Some(
-          deriveIterableF[F, A, b, IA, IB, Flags](
-            from,
-            config,
-            support,
-            toIterator
-          )
+        deriveIterableF[F, A, b, IA, IB, Flags](
+          from,
+          config,
+          support,
+          toIterator
         )
       case '[IArray[b]] =>
-        Some(
-          deriveIterableF[F, A, b, IA, IB, Flags](
-            from,
-            config,
-            support,
-            toIterator
-          )
+        deriveIterableF[F, A, b, IA, IB, Flags](
+          from,
+          config,
+          support,
+          toIterator
         )
       case '[IterableOnce[b]] =>
-        Some(
-          deriveIterableF[F, A, b, IA, IB, Flags](
-            from,
-            config,
-            support,
-            toIterator
-          )
+        deriveIterableF[F, A, b, IA, IB, Flags](
+          from,
+          config,
+          support,
+          toIterator
         )
       case _ =>
         None
@@ -177,9 +171,7 @@ trait CollectionDeriveModule:
   ): Option[Expr[IB]] =
     Type.of[IB] match
       case '[IterableOnce[(b1, b2)]] =>
-        Some(
-          deriveMapLike[A1, A2, b1, b2, IA, IB, Flags](from, config, toIterator)
-        )
+        deriveMapLike[A1, A2, b1, b2, IA, IB, Flags](from, config, toIterator)
       case _ =>
         None
   end deriveMapLikeExtract
@@ -199,13 +191,11 @@ trait CollectionDeriveModule:
   ): Option[Expr[F[IB]]] =
     Type.of[IB] match
       case '[IterableOnce[(b1, b2)]] =>
-        Some(
-          deriveMapLikeF[F, A1, A2, b1, b2, IA, IB, Flags](
-            from,
-            config,
-            support,
-            toIterator
-          )
+        deriveMapLikeF[F, A1, A2, b1, b2, IA, IB, Flags](
+          from,
+          config,
+          support,
+          toIterator
         )
       case _ =>
         None
@@ -221,19 +211,19 @@ trait CollectionDeriveModule:
     from: Expr[IA],
     config: TransformerDefinitionMaterialized[Flags],
     toIterator: Expr[IA => Iterator[A]]
-  ): Expr[IB] =
+  ): Option[Expr[IB]] =
     Expr.summon[Factory[B, IB]] match
       case Some(factory) =>
-        '{
-          val builder = $factory.newBuilder
-          for el <- $toIterator($from) do
-            builder += ${ elemWiseTransform[A, B, Flags]('{ el }, config) }
-          builder.result
-        }
-      case None =>
-        report.errorAndAbort(
-          s"Missing factory for collection type: ${Type.show[IB]}"
+        Some(
+          '{
+            val builder = $factory.newBuilder
+            for el <- $toIterator($from) do
+              builder += ${ elemWiseTransform[A, B, Flags]('{ el }, config) }
+            builder.result
+          }
         )
+      case None =>
+        None
   end deriveIterable
 
   private def deriveIterableF[
@@ -248,20 +238,20 @@ trait CollectionDeriveModule:
     config: TransformerFDefinitionMaterialized[Flags],
     support: Expr[TransformerFSupport[F]],
     toIterator: Expr[IA => Iterator[A]]
-  ): Expr[F[IB]] =
+  ): Option[Expr[F[IB]]] =
     Expr.summon[Factory[B, IB]] match
       case Some(factory) =>
-        '{
-          $support.traverse(
-            $toIterator($from),
-            a =>
-              ${ elemWiseTransformF[F, A, B, Flags]('{ a }, config, support) }
-          )(using $factory)
-        }
-      case None =>
-        report.errorAndAbort(
-          s"Missing factory for collection type: ${Type.show[IB]}"
+        Some(
+          '{
+            $support.traverse(
+              $toIterator($from),
+              a =>
+                ${ elemWiseTransformF[F, A, B, Flags]('{ a }, config, support) }
+            )(using $factory)
+          }
         )
+      case None =>
+        None
   end deriveIterableF
 
   private def deriveMapLike[
@@ -276,21 +266,21 @@ trait CollectionDeriveModule:
     from: Expr[IA],
     config: TransformerDefinitionMaterialized[Flags],
     toIterator: Expr[IA => Iterator[(A1, A2)]]
-  ): Expr[IB] =
+  ): Option[Expr[IB]] =
     Expr.summon[Factory[(B1, B2), IB]] match
       case Some(factory) =>
-        '{
-          val builder = $factory.newBuilder
-          for (a1, a2) <- $toIterator($from) do
-            builder += (${
-              elemWiseTransform[A1, B1, Flags]('{ a1 }, config)
-            } -> ${ elemWiseTransform[A2, B2, Flags]('{ a2 }, config) })
-          builder.result
-        }
-      case None =>
-        report.errorAndAbort(
-          s"Missing factory for collection type: ${Type.show[IB]}"
+        Some(
+          '{
+            val builder = $factory.newBuilder
+            for (a1, a2) <- $toIterator($from) do
+              builder += (${
+                elemWiseTransform[A1, B1, Flags]('{ a1 }, config)
+              } -> ${ elemWiseTransform[A2, B2, Flags]('{ a2 }, config) })
+            builder.result
+          }
         )
+      case None =>
+        None
   end deriveMapLike
 
   private def deriveMapLikeF[
@@ -307,27 +297,35 @@ trait CollectionDeriveModule:
     config: TransformerFDefinitionMaterialized[Flags],
     support: Expr[TransformerFSupport[F]],
     toIterator: Expr[IA => Iterator[(A1, A2)]]
-  ): Expr[F[IB]] =
+  ): Option[Expr[F[IB]]] =
     Expr.summon[Factory[(B1, B2), IB]] match
       case Some(factory) =>
-        '{
-          $support.traverse(
-            $toIterator($from),
-            (a1, a2) =>
-              $support.product(
-                ${
-                  elemWiseTransformF[F, A1, B1, Flags]('{ a1 }, config, support)
-                },
-                ${
-                  elemWiseTransformF[F, A2, B2, Flags]('{ a2 }, config, support)
-                }
-              )
-          )(using $factory)
-        }
-      case None =>
-        report.errorAndAbort(
-          s"Missing factory for collection type: ${Type.show[IB]}"
+        Some(
+          '{
+            $support.traverse(
+              $toIterator($from),
+              (a1, a2) =>
+                $support.product(
+                  ${
+                    elemWiseTransformF[F, A1, B1, Flags](
+                      '{ a1 },
+                      config,
+                      support
+                    )
+                  },
+                  ${
+                    elemWiseTransformF[F, A2, B2, Flags](
+                      '{ a2 },
+                      config,
+                      support
+                    )
+                  }
+                )
+            )(using $factory)
+          }
         )
+      case None =>
+        None
   end deriveMapLikeF
 
   private def deriveOptionF[F[_]: Type, A: Type, B: Type, Flags <: Tuple: Type](

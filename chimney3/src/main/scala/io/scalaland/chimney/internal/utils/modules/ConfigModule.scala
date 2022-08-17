@@ -16,11 +16,11 @@ trait ConfigModule:
 
   case class TransformerDefinitionMaterialized[Flags <: Tuple](
     materializedConfig: List[MaterializedConfig],
-    defaults: Option[Map[String, Term]]
+    defaults: Option[Map[String, Expr[?]]]
   )
 
   object TransformerDefinitionMaterialized:
-    def materialize[A: Type, Config <: Tuple: Type, Flags <: Tuple: Type](
+    def materialize[B: Type, Config <: Tuple: Type, Flags <: Tuple: Type](
       overrides: Expr[Array[Any]],
       instances: Expr[Array[Any]]
     ): TransformerDefinitionMaterialized[Flags] =
@@ -29,17 +29,17 @@ trait ConfigModule:
           overrides,
           instances
         ),
-        summonDefaults[A]
+        summonDefaults[B]
       )
   end TransformerDefinitionMaterialized
 
   case class TransformerFDefinitionMaterialized[Flags <: Tuple](
     materializedConfig: List[MaterializedConfig],
-    defaults: Option[Map[String, Term]]
+    defaults: Option[Map[String, Expr[?]]]
   )
 
   object TransformerFDefinitionMaterialized:
-    def materialize[A: Type, Config <: Tuple: Type, Flags <: Tuple: Type](
+    def materialize[B: Type, Config <: Tuple: Type, Flags <: Tuple: Type](
       overrides: Expr[Array[Any]],
       instances: Expr[Array[Any]]
     ): TransformerFDefinitionMaterialized[Flags] =
@@ -48,7 +48,7 @@ trait ConfigModule:
           overrides,
           instances
         ),
-        summonDefaults[A]
+        summonDefaults[B]
       )
   end TransformerFDefinitionMaterialized
 
@@ -156,7 +156,7 @@ trait ConfigModule:
       definition.materializedConfig.collectFirst {
         case MaterializedConfig.CoproductInstance(`caseName`, _, func) => func
         case MaterializedConfig.CoproductInstance(name, _, func)
-            if name.endsWith(s".$caseName") =>
+            if name.endsWith(s".$caseName") || name.endsWith(s"$caseName.type") =>
           func
       }
 
@@ -165,10 +165,10 @@ trait ConfigModule:
   )
     def hasAFlag[Flag <: TransformerFlag: Type]: Boolean =
       hasAFlagImpl[Flags, Flag]
-    def inherited[A: Type]: TransformerDefinitionMaterialized[Flags] =
+    def inherited[B: Type]: TransformerDefinitionMaterialized[Flags] =
       TransformerDefinitionMaterialized(
         List.empty,
-        summonDefaults[A]
+        summonDefaults[B]
       )
 
   extension (definition: TransformerFDefinitionMaterialized[?])
@@ -196,7 +196,7 @@ trait ConfigModule:
       definition.materializedConfig.collectFirst {
         case MaterializedConfig.CoproductInstance(`caseName`, _, func) => func
         case MaterializedConfig.CoproductInstance(name, _, func)
-            if name.endsWith(s".$caseName") =>
+            if name.endsWith(s".$caseName") || name.endsWith(s"$caseName.type") =>
           func
       }
     def isCaseComputedF(caseName: String): Option[Expr[Any => Any]] =
@@ -212,10 +212,10 @@ trait ConfigModule:
   )
     def hasAFlag[Flag <: TransformerFlag: Type]: Boolean =
       hasAFlagImpl[Flags, Flag]
-    def inherited[A: Type]: TransformerFDefinitionMaterialized[Flags] =
+    def inherited[B: Type]: TransformerFDefinitionMaterialized[Flags] =
       TransformerFDefinitionMaterialized(
         List.empty,
-        summonDefaults[A]
+        summonDefaults[B]
       )
 
   case class OptimizedConfig(
@@ -303,8 +303,8 @@ trait ConfigModule:
       case f =>
         report.errorAndAbort(s"Illegal value in config: $f, should not happen")
 
-  private def summonDefaults[A: Type]: Option[Map[String, Term]] =
-    val symbol = TypeTree.of[A].symbol
+  private def summonDefaults[B: Type]: Option[Map[String, Expr[?]]] =
+    val symbol = TypeTree.of[B].symbol
     if (symbol.isClassDef) {
       val names = for p <- symbol.caseFields if p.flags.is(Flags.HasDefault) yield p.name
       val companion = symbol.companionClass
@@ -318,9 +318,13 @@ trait ConfigModule:
         val body = classDef.body
         val defaultParams =
           for
-            case deff @ DefDef(name, _, _, _) <- body.view
+            case deff @ DefDef(name, _, tpe, _) <- body.view
             if name.startsWith("$lessinit$greater$default")
-          yield Ref(deff.symbol)
+          yield
+            tpe.tpe.asType match
+              case '[bb] =>
+                deff.rhs.map(_.asExprOf[bb])
+                  .getOrElse(Ref(deff.symbol).asExprOf[bb])
 
         names.zip(defaultParams).toMap
       }

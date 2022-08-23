@@ -59,13 +59,13 @@ trait ConfigModule:
     case FieldComputedF(field: String, function: Expr[Any => Any])
     case FieldRelabelled(fromField: String, field: String)
     case CoproductInstance(
-      fromType: String,
-      toType: String,
+      fromType: TypeRepr,
+      toType: TypeRepr,
       function: Expr[Any => Any]
     )
     case CoproductInstanceF(
-      fromType: String,
-      toType: String,
+      fromType: TypeRepr,
+      toType: TypeRepr,
       function: Expr[Any => Any]
     )
   end MaterializedConfig
@@ -113,20 +113,20 @@ trait ConfigModule:
               instancesIndex
             )
           case '[TransformerCfg.CoproductInstance[from, to] *: tail] =>
-            val from = showType[from]
-            val to = showType[to]
             CoproductInstance(
-              from,
-              to,
-              '{ $instances(${ Expr(instancesIndex) }).asInstanceOf[Any => Any] }
+              TypeRepr.of[from],
+              TypeRepr.of[to],
+              '{
+                $instances(${ Expr(instancesIndex) }).asInstanceOf[Any => Any]
+              }
             ) :: implement[tail](overrideIndex, instancesIndex + 1)
           case '[TransformerCfg.CoproductInstanceF[from, to] *: tail] =>
-            val from = showType[from]
-            val to = showType[to]
             CoproductInstanceF(
-              from,
-              to,
-              '{ $instances(${ Expr(instancesIndex) }).asInstanceOf[Any => Any] }
+              TypeRepr.of[from],
+              TypeRepr.of[to],
+              '{
+                $instances(${ Expr(instancesIndex) }).asInstanceOf[Any => Any]
+              }
             ) :: implement[tail](overrideIndex, instancesIndex + 1)
           case '[_ *: tail] =>
             implement[tail](overrideIndex, instancesIndex)
@@ -152,12 +152,9 @@ trait ConfigModule:
       definition.materializedConfig.collectFirst {
         case MaterializedConfig.FieldRelabelled(from, `field`) => from
       }
-    def isCaseComputed(caseName: String): Option[Expr[Any => Any]] =
+    def isCaseComputed[T: Type]: Option[Expr[Any => Any]] =
       definition.materializedConfig.collectFirst {
-        case MaterializedConfig.CoproductInstance(`caseName`, _, func) => func
-        case MaterializedConfig.CoproductInstance(name, _, func)
-            if name.endsWith(s".$caseName") || name.endsWith(s"$caseName.type") =>
-          func
+        case MaterializedConfig.CoproductInstance(tpe, _, func) if TypeRepr.of[T] <:< tpe => func
       }
 
   extension [Flags <: Tuple: Type](
@@ -192,19 +189,13 @@ trait ConfigModule:
       definition.materializedConfig.collectFirst {
         case MaterializedConfig.FieldRelabelled(from, `field`) => from
       }
-    def isCaseComputed(caseName: String): Option[Expr[Any => Any]] =
+    def isCaseComputed[T: Type]: Option[Expr[Any => Any]] =
       definition.materializedConfig.collectFirst {
-        case MaterializedConfig.CoproductInstance(`caseName`, _, func) => func
-        case MaterializedConfig.CoproductInstance(name, _, func)
-            if name.endsWith(s".$caseName") || name.endsWith(s"$caseName.type") =>
-          func
+        case MaterializedConfig.CoproductInstance(tpe, _, func) if TypeRepr.of[T] <:< tpe => func
       }
-    def isCaseComputedF(caseName: String): Option[Expr[Any => Any]] =
+    def isCaseComputedF[T: Type]: Option[Expr[Any => Any]] =
       definition.materializedConfig.collectFirst {
-        case MaterializedConfig.CoproductInstanceF(`caseName`, _, func) => func
-        case MaterializedConfig.CoproductInstanceF(name, _, func)
-            if name.endsWith(s".$caseName") =>
-          func
+        case MaterializedConfig.CoproductInstanceF(tpe, _, func) if TypeRepr.of[T] <:< tpe => func
       }
 
   extension [Flags <: Tuple: Type](
@@ -305,8 +296,9 @@ trait ConfigModule:
 
   private def summonDefaults[B: Type]: Option[Map[String, Expr[?]]] =
     val symbol = TypeTree.of[B].symbol
-    if (symbol.isClassDef) {
-      val names = for p <- symbol.caseFields if p.flags.is(Flags.HasDefault) yield p.name
+    if symbol.isClassDef then
+      val names = for p <- symbol.caseFields if p.flags.is(Flags.HasDefault)
+      yield p.name
       val companion = symbol.companionClass
       val classDefinition: Option[ClassDef] =
         try {
@@ -320,17 +312,17 @@ trait ConfigModule:
           for
             case deff @ DefDef(name, _, tpe, _) <- body.view
             if name.startsWith("$lessinit$greater$default")
-          yield
-            tpe.tpe.asType match
-              case '[bb] =>
-                deff.rhs.map(_.asExprOf[bb])
-                  .getOrElse(Ref(deff.symbol).asExprOf[bb])
+          yield tpe.tpe.asType match
+            case '[bb] =>
+              deff.rhs
+                .map(_.asExprOf[bb])
+                .getOrElse(Ref(deff.symbol).asExprOf[bb])
 
         names.zip(defaultParams).toMap
       }
-    } else {
-      None
-    }
+    else None
+    end if
+  end summonDefaults
 
   def showType[T: Type]: String = Type.show[T]
 

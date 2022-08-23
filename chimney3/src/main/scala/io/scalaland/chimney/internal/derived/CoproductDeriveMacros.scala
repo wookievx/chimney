@@ -1,7 +1,13 @@
 package io.scalaland.chimney.internal.derived
 
 import io.scalaland.chimney.TransformerFSupport
-import io.scalaland.chimney.internal.utils.modules.{CommonDeriveModule, ConfigModule, FieldModule, MirrorModule, Module}
+import io.scalaland.chimney.internal.utils.modules.{
+  CommonDeriveModule,
+  ConfigModule,
+  FieldModule,
+  MirrorModule,
+  Module
+}
 
 import scala.quoted.*
 
@@ -71,11 +77,11 @@ trait CoproductDeriveMacros:
   ): Expr[F[B]] =
     sourceCases match
       case (caseOrdinal, (caseName, caseTpe)) :: sourceCases =>
-        val computedCaseLogic = config
-          .isCaseComputed(caseName)
-          .map(func =>
-            caseTpe.asType match
-              case '[a] =>
+        caseTpe.asType match
+          case '[a] =>
+            val computedCaseLogic = config
+              .isCaseComputed[a]
+              .map(func =>
                 '{
                   if $ordinal == ${ Expr(caseOrdinal) } then
                     $support
@@ -93,12 +99,10 @@ trait CoproductDeriveMacros:
                     }
                   end if
                 }
-          )
-        val computedCaseFLogic = config
-          .isCaseComputedF(caseName)
-          .map(func =>
-            caseTpe.asType match
-              case '[a] =>
+              )
+            val computedCaseFLogic = config
+              .isCaseComputedF[a]
+              .map(func =>
                 '{
                   if $ordinal == ${ Expr(caseOrdinal) } then
                     $func.asInstanceOf[a => F[B]]($source.asInstanceOf[a])
@@ -115,42 +119,39 @@ trait CoproductDeriveMacros:
                     }
                   end if
                 }
-          )
-        val defaultLogic = targetCases.get(caseName) match
-          case Some(targetTpe) =>
-            (caseTpe.asType, targetTpe.asType) match
-              case ('[a], '[b]) =>
-                Some(
-                  '{
-                    if $ordinal == ${ Expr(caseOrdinal) } then
-                      ${
-                        elemWiseTransformF[F, a, b, Flags](
-                          '{ $source.asInstanceOf[a] },
-                          config,
-                          support
-                        )
-                      }.asInstanceOf[F[B]]
-                    else
-                      ${
-                        handleBranchesF[F, A, B, Flags](
-                          source,
-                          ordinal,
-                          config,
-                          support,
-                          sourceCases,
-                          targetCases
-                        )
-                      }
-                    end if
-                  }
-                )
-          case None =>
-            None
-
-        computedCaseLogic orElse computedCaseFLogic orElse defaultLogic getOrElse
-          report.errorAndAbort(
-            s"No case named $caseName in target type ${Type.show[B]}"
-          )
+              )
+            val defaultLogic = targetCases.get(caseName) match
+              case Some(targetTpe) =>
+                targetTpe.asType match
+                  case '[b] =>
+                    Some('{
+                      if $ordinal == ${ Expr(caseOrdinal) } then
+                        ${
+                          elemWiseTransformF[F, a, b, Flags](
+                            '{ $source.asInstanceOf[a] },
+                            config,
+                            support
+                          )
+                        }.asInstanceOf[F[B]]
+                      else
+                        ${
+                          handleBranchesF[F, A, B, Flags](
+                            source,
+                            ordinal,
+                            config,
+                            support,
+                            sourceCases,
+                            targetCases
+                          )
+                        }
+                      end if
+                    })
+              case None =>
+                None
+            computedCaseLogic orElse computedCaseFLogic orElse defaultLogic getOrElse
+              report.errorAndAbort(
+                s"No case named $caseName in target type ${Type.show[B]}"
+              )
       case Nil =>
         '{
           throw RuntimeException(
@@ -168,11 +169,11 @@ trait CoproductDeriveMacros:
   ): Expr[B] =
     sourceCases match
       case (caseOrdinal, (caseName, caseTpe)) :: sourceCases =>
-        val computedCaseLogic = config
-          .isCaseComputed(caseName)
-          .map(func =>
-            caseTpe.asType match
-              case '[a] =>
+        caseTpe.asType match
+          case '[a] =>
+            val computedCaseLogic = config
+              .isCaseComputed[a]
+              .map(func =>
                 '{
                   if $ordinal == ${ Expr(caseOrdinal) } then
                     $func.asInstanceOf[a => B]($source.asInstanceOf[a])
@@ -188,40 +189,37 @@ trait CoproductDeriveMacros:
                     }
                   end if
                 }
-          )
-        val defaultLogic = targetCases.get(caseName) match
-          case Some(targetTpe) =>
-            (caseTpe.asType, targetTpe.asType) match
-              case ('[a], '[b]) =>
-                Some(
-                  '{
-                    if $ordinal == ${ Expr(caseOrdinal) } then
-                      ${
-                        elemWiseTransform[a, b, Flags](
-                          '{ $source.asInstanceOf[a] },
-                          config
-                        )
-                      }.asInstanceOf[B]
-                    else
-                      ${
-                        handleBranches[A, B, Flags](
-                          source,
-                          ordinal,
-                          config,
-                          sourceCases,
-                          targetCases
-                        )
-                      }
-                    end if
-                  }
-                )
-          case None =>
-            None
-
-        computedCaseLogic orElse defaultLogic getOrElse
-          report.errorAndAbort(
-            s"No case named $caseName in target type ${Type.show[B]}"
-          )
+              )
+            val defaultLogic = targetCases.get(caseName) match
+              case Some(targetTpe) =>
+                targetTpe.asType match
+                  case '[b] =>
+                    Some('{
+                      if $ordinal == ${ Expr(caseOrdinal) } then
+                        ${
+                          elemWiseTransform[a, b, Flags](
+                            '{ $source.asInstanceOf[a] },
+                            config
+                          )
+                        }.asInstanceOf[B]
+                      else
+                        ${
+                          handleBranches[A, B, Flags](
+                            source,
+                            ordinal,
+                            config,
+                            sourceCases,
+                            targetCases
+                          )
+                        }
+                      end if
+                    })
+              case None =>
+                None
+            computedCaseLogic orElse defaultLogic getOrElse
+              report.errorAndAbort(
+                s"No case named $caseName in target type ${Type.show[B]}"
+              )
       case Nil =>
         '{
           throw RuntimeException(

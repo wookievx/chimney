@@ -101,4 +101,16 @@ trait MirrorModule:
     case tp             => tp
   }
 
+  private[internal] def constructor[B: Type]: Term =
+    val tpe = TypeRepr.of[B]
+    val (repr, constructor, tpeArgs) = tpe match
+      case AppliedType(repr, reprArguments) =>
+        (repr, repr.typeSymbol.primaryConstructor, reprArguments)
+      case notApplied => (tpe, tpe.typeSymbol.primaryConstructor, Nil)
+
+    New(Inferred(repr))
+      .select(constructor)
+      .appliedToTypes(tpeArgs)
+  end constructor
+
 end MirrorModule

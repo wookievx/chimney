@@ -14,5 +14,5 @@ trait Patcher[T, Patch]:
 end Patcher
 
 object Patcher:
-  inline def derived[T, Patch]: Patcher[T, Patch] = PatcherDerive.derived[T, Patch, EmptyTuple, ""]
+  inline def derived[T, Patch]: Patcher[T, Patch] = PatcherDerive.derived[T, Patch, EmptyTuple]
 end Patcher

@@ -49,17 +49,6 @@ object MockTest extends TestSuite:
         t.transform(Source.First("Anything")) ==> Target.Third(42)
         t.transform(Source.Second(420)) ==> Target.Second(420)
       }
-
-      "correctly convert special cases" - {
-        given intPrinter: Transformer[Int, String] = _.toString
-
-        10.transformIntoF[Option, Option[String]] ==> Some(Some("10"))
-        (null: String).transformIntoF[Option, Option[String]] ==> Some(None)
-
-        type E = [t] =>> Either[List[String], t]
-        10.transformIntoF[E, Option[String]] ==> Right(Some("10"))
-        (null: String).transformIntoF[E, Option[String]] ==> Right(None)
-      }
     }
   }
 

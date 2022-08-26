@@ -200,19 +200,6 @@ trait ProductDeriveMacros:
       List.empty
   end methodFields
 
-  private def constructor[B: Type]: Term =
-    val tpe = TypeRepr.of[B]
-    val (repr, constructor, tpeArgs) = tpe match {
-      case AppliedType(repr, reprArguments) =>
-        (repr, repr.typeSymbol.primaryConstructor, reprArguments)
-      case notApplied => (tpe, tpe.typeSymbol.primaryConstructor, Nil)
-    }
-
-    New(Inferred(repr))
-      .select(constructor)
-      .appliedToTypes(tpeArgs)
-  end constructor
-
   private def summonSingleton[B: Type]: Expr[B] =
     val tpe = TypeRepr.of[B]
     if tpe.isSingleton then

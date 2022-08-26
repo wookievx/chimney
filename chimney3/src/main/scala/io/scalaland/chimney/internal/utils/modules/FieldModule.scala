@@ -30,13 +30,13 @@ trait FieldModule:
           case '[t] =>
             Apply(Select(value.asTerm, method), List.empty).asExprOf[t]
 
-    def patchWithValue[A: Type, AA: Type, B: Type](
+    def patchWithValue[A: Type, AA: Type, BB: Type](
       source: Expr[A],
-      patchValue: Expr[B],
-      patch: Expr[Patcher[AA, B]]
-    ): Term =
+      patchValue: Expr[BB],
+      patch: Expr[Patcher[AA, BB]]
+    ): Expr[AA] =
       val accessor = accessFrom(source)
-      '{ $patch.patch(${ accessor.asExprOf[AA] }, $patchValue) }.asTerm
+      '{ $patch.patch(${ accessor.asExprOf[AA] }, $patchValue) }
 
   end ReadField
 

@@ -219,7 +219,7 @@ object TransformerDslFSpec extends TestSuite {
 
         "F = Option" - {
           10.transformIntoF[Option, Option[String]] ==> Some(Some("10"))
-          (null: String).transformIntoF[Option, Option[String]] ==> Some(None)
+          (null: String).transformIntoF[Option, Option[String]] ==> None
         }
 
         "F = Either[List[String], +*]]" - {
@@ -234,7 +234,7 @@ object TransformerDslFSpec extends TestSuite {
           given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
 
           "10".transformIntoF[Option, Option[Int]] ==> Some(Some(10))
-          (null: String).transformIntoF[Option, Option[Int]] ==> Some(None)
+          (null: String).transformIntoF[Option, Option[Int]] ==> None
           "x".transformIntoF[Option, Option[Int]] ==> None
         }
 
@@ -243,7 +243,9 @@ object TransformerDslFSpec extends TestSuite {
             _.parseInt.toEither("bad int")
 
           "10".transformIntoF[E, Option[Int]] ==> Right(Some(10))
-          (null: String).transformIntoF[E, Option[Int]] ==> Right(None)
+          (null: String).transformIntoF[E, Option[Int]] ==> Left(
+            List("bad int")
+          )
           "x".transformIntoF[E, Option[Int]] ==> Left(List("bad int"))
         }
       }
@@ -787,7 +789,7 @@ object TransformerDslFSpec extends TestSuite {
       }
     }
 
-    /*"support conversion from java beans" - {
+    "support conversion from java beans" - {
       import io.scalaland.chimney.example.*
 
       val bean = new JavaBean
@@ -796,13 +798,11 @@ object TransformerDslFSpec extends TestSuite {
 
       "converting directly with nulls" - {
 
-        bean.intoF[Option, ScalaBean].enableBeanGetters.transform ==> Some(
-          ScalaBean(42, null)
-        )
-        // bean
-        //   .intoF[[t] =>> Either[String, t], ScalaBean]
-        //   .enableBeanGetters
-        //   .transform ==> Right(ScalaBean(42, null))
+        bean.intoF[Option, ScalaBean].enableBeanGetters.transform ==> Some(ScalaBean(42, null))
+        bean
+          .intoF[[t] =>> Either[String, t], ScalaBean]
+          .enableBeanGetters
+          .transform ==> Right(ScalaBean(42, null))
       }
 
       "converting nulls to Option.None if possible" - {
@@ -838,7 +838,7 @@ object TransformerDslFSpec extends TestSuite {
           )
 
       }
-    }*/
+    }
   }
 
 }

@@ -31,7 +31,7 @@ object PatcherSpec extends TestSuite {
       compileError("exampleUser.patchUsing(patch)")
         .check(
           "",
-          "Derivation failed because target type is missing a field at .address, type in question: io.scalaland.chimney.TestDomain.User, error: .address"
+          "Patcher derivation failed at path: , patched object io.scalaland.chimney.TestDomain.User is missing field: address"
         )
 
       exampleUser
@@ -105,71 +105,7 @@ object PatcherSpec extends TestSuite {
 
     }
 
-    "allow combining multiple updates in a single patch definition" - {
-      import TestDomain.*
-
-      case class IdPatch(id: Option[Int])
-      case class PhonePatch(phone: Option[Phone])
-      case class EmailPatch(id: Option[Int], email: Email)
-
-      exampleUser
-        .using(IdPatch(None))
-        .and(PhonePatch(Some(Phone(1234567890L))))
-        .and(EmailPatch(Some(11), Email("updated@example.com")))
-        .patch ==> User(11, Email("updated@example.com"), Phone(1234567890L))
-
-      exampleUserWithOptionalField
-        .using(IdPatch(None))
-        .and(PhonePatch(None))
-        .and(EmailPatch(Some(11), Email("updated@example.com")))
-        .patch ==> UserWithOptionalField(11, Email("updated@example.com"), None)
-    }
-
-    "allow combining multiple updates in a single patch definition respecting ignoring optional fields" - {
-      import TestDomain.*
-
-      case class PhonePatch(phone: Option[Phone])
-      case class EmailPatch(id: Option[Int], email: Email)
-
-      exampleUserWithOptionalField
-        .using(PhonePatch(None))
-        .and(EmailPatch(Some(11), Email("updated@example.com")))
-        .ignoreNoneInPatch
-        .patch ==> exampleUserWithOptionalField.copy(id = 11, email = Email("updated@example.com"))
-
-    }
-
-    "allow combining multiple updates in a single patch definition respecting redundant fields" - {
-      import TestDomain.*
-
-      case class Name(name: String)
-      case class RedundantIdPatch(id: Option[Int], address: String)
-      case class RedundantEmailPatch(id: Option[Int], email: Email, name: Name)
-
-      val idPatch = RedundantIdPatch(None, "Moon")
-      val emailPatch = RedundantEmailPatch(Some(11), Email("updated@example.com"), Name("Lucas"))
-
-      compileError("exampleUser.using(idPatch).and(emailPatch).patch")
-        .check(
-          "",
-          "Derivation failed because target type is missing a field at .address, type in question: io.scalaland.chimney.TestDomain.User, error: .address"
-        )
-
-      compileError("exampleUser.using(emailPatch).and(idPatch).patch")
-        .check(
-          "",
-          "Derivation failed because target type is missing a field at .name, type in question: io.scalaland.chimney.TestDomain.User, error: .name"
-        )
-
-      exampleUser
-        .using(emailPatch)
-        .and(idPatch)
-        .ignoreRedundantPatcherFields
-        .patch ==> exampleUser.copy(id = 11, email = Email("updated@example.com"))
-    }
-
   }
-
 
   MacroUtils.doPrintFCompileTime["Finished compiling PatchersSpec", EmptyTuple]
   MacroUtils.reportCompilationTime

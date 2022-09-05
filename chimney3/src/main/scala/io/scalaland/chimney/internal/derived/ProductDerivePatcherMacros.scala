@@ -23,6 +23,8 @@ trait ProductDerivePatcherMacros:
     val patchFields =
       ReadField.fromMirror(patchMirror).view.map(f => f.name -> f).toMap
 
+    verifyCorrectFieldSetup[Config, A](path, sourceFields.keySet, patchFields.keys)
+
     '{
       new Patcher[A, B]:
         override def patch(obj: A, patch: B): A =
@@ -48,6 +50,26 @@ trait ProductDerivePatcherMacros:
     }
 
   end deriveProduct
+
+  private def verifyCorrectFieldSetup[Config <: Tuple: Type, A: Type](
+    path: String,
+    source: Set[String],
+    patch: Iterable[String]
+  ): Unit =
+    val missingField = patch.find(f => !source.contains(f))
+    missingField match
+      case _
+          if hasPatcherConfig[
+            Config,
+            PatcherCfg.IgnoreRedundantPatcherFields
+          ] =>
+      case None =>
+      case Some(missingField) =>
+        report.errorAndAbort(
+          s"Patcher derivation failed at path: $path, patched object ${Type
+            .show[A]} is missing field: $missingField"
+        )
+  end verifyCorrectFieldSetup
 
   private def performPatchOpt[A: Type, B: Type, Config <: Tuple: Type](
     sourceValue: Expr[A],
@@ -137,7 +159,9 @@ trait ProductDerivePatcherMacros:
             override def patch(obj: A, patch: B): A = patch.asInstanceOf[A]
         }
       case _ =>
-        Expr.summon[Patcher[A, B]] getOrElse derive[A, B, Config](Some(s"$path.$field"))
+        Expr.summon[Patcher[A, B]] getOrElse derive[A, B, Config](
+          Some(s"$path.$field")
+        )
   end patchField
 
   private def hasPatcherConfig[Config <: Tuple: Type, Cfg <: PatcherCfg: Type]

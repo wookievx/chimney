@@ -13,7 +13,7 @@ end TransformerF
 
 object TransformerF:
   inline def derived[F[_], From, To](using sup: TransformerFSupport[F]): TransformerF[F, From, To] = 
-    TransformerDerive.derived[F, From, To, EmptyTuple, TransformerFlag.DefaultValues *: EmptyTuple](
+    TransformerDerive.derivedF[F, From, To, EmptyTuple, TransformerFlag.DefaultValues *: EmptyTuple](
       TransformerFDefinition(Map.empty, Map.empty)
     )
 end TransformerF

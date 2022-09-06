@@ -124,6 +124,6 @@ final class TransformerFDefinition[F[_], From, To, Config <: Tuple, Flags <: Tup
     * @return [[io.scalaland.chimney.TransformerF]] type class instance
     */
   inline def buildTransformer(using TransformerFSupport[F]): TransformerF[F, From, To] = 
-    TransformerDerive.derived[F, From, To, Config, Flags](this)
+    TransformerDerive.derivedF[F, From, To, Config, Flags](this)
 
 end TransformerFDefinition

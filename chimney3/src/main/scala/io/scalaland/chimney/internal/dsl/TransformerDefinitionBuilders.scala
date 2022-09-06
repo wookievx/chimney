@@ -357,7 +357,7 @@ object GenericTransformerDefinitionBuilder:
       case '{$name: t} =>
           concrete(name)
       case _ =>
-          report.throwError("Unable to extract selector name")
+          report.errorAndAbort("Unable to extract selector name")
   end withFieldGenImpl
 
   private def withFieldGenImpl[From: Type, To: Type, T: Type](
@@ -373,7 +373,7 @@ object GenericTransformerDefinitionBuilder:
       case ('{$renameFrom: f}, '{$renameTo: t}) =>
           concrete(renameFrom, renameTo)
       case _ =>
-          report.throwError("Unable to extract selectors names")
+          report.errorAndAbort("Unable to extract selectors names")
   end withFieldGenImpl
 
   private def withInstancesGenImpl[From: Type, To: Type, ToType](

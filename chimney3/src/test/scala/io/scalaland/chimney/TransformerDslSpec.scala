@@ -13,8 +13,9 @@ object TransformerDslSpec extends TestSuite {
     "use given instances directly" - {
       import Domain1.*
 
-      given instance: Transformer[UserName, String] = userNameToStringTransformer
-      
+      given instance: Transformer[UserName, String] =
+        userNameToStringTransformer
+
       UserName("Batman").into[String].transform ==> "BatmanT"
       UserName("Batman").transformInto[String] ==> "BatmanT"
     }
@@ -22,7 +23,8 @@ object TransformerDslSpec extends TestSuite {
     "use given transformer for nested field" - {
       import Domain1.*
 
-      given instance: Transformer[UserName, String] = userNameToStringTransformer
+      given instance: Transformer[UserName, String] =
+        userNameToStringTransformer
 
       val batman = User("123", UserName("Batman"))
       val batmanDTO = batman.transformInto[UserDTO]
@@ -30,7 +32,7 @@ object TransformerDslSpec extends TestSuite {
       batmanDTO.id ==> "123"
       batmanDTO.name ==> "BatmanT"
     }
-    
+
     "support different set of fields of source and target" - {
 
       case class Foo(x: Int, y: String, z: (Double, Double))
@@ -46,7 +48,10 @@ object TransformerDslSpec extends TestSuite {
         "not compile if source for the target fields is not provided" - {
 
           compileError("Bar(3, (3.14, 3.14)).transformInto[Foo]")
-            .check("", "Unable to find default value in Foo or method in Bar for \"y\" at")
+            .check(
+              "",
+              "Unable to find default value in Foo or method in Bar for \"y\" at"
+            )
         }
 
         "fill the field with provided default value" - {
@@ -147,8 +152,13 @@ object TransformerDslSpec extends TestSuite {
           }
 
           "not compile if .enableOptionDefaultsToNone is missing" - {
-            compileError("""SomeFoo("foo").into[Foobar].transform ==> Foobar("foo", None)""")
-              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at")
+            compileError(
+              """SomeFoo("foo").into[Foobar].transform ==> Foobar("foo", None)"""
+            )
+              .check(
+                "",
+                "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at"
+              )
           }
 
           "target has default value, but default values are disabled and .enableOptionDefaultsToNone" - {
@@ -162,12 +172,20 @@ object TransformerDslSpec extends TestSuite {
 
           "not compile if default value is missing and no .enableOptionDefaultsToNone" - {
             compileError("""SomeFoo("foo").into[Foobar].transform""")
-              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at ")
+              .check(
+                "",
+                "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at "
+              )
           }
 
           "not compile if default values are disabled and no .enableOptionDefaultsToNone" - {
-            compileError("""SomeFoo("foo").into[Foobar2].disableDefaultValues.transform""")
-              .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar2 or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at ")
+            compileError(
+              """SomeFoo("foo").into[Foobar2].disableDefaultValues.transform"""
+            )
+              .check(
+                "",
+                "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.Foobar2 or method in io.scalaland.chimney.TransformerDslSpec.SomeFoo for \"y\" at "
+              )
           }
         }
 
@@ -267,12 +285,18 @@ object TransformerDslSpec extends TestSuite {
         compileError("""
           Foo(10).into[Bar].disableDefaultValues.transform
         """)
-          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at ")
-        
+          .check(
+            "",
+            "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at "
+          )
+
         compileError("""
           Baah(10, Foo(300)).into[Baahr].disableDefaultValues.transform
         """)
-          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at ")
+          .check(
+            "",
+            "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Bar or method in io.scalaland.chimney.TransformerDslSpec.DefaultSupportSpecs.Foo for \"y\" at "
+          )
       }
     }
 
@@ -294,7 +318,10 @@ object TransformerDslSpec extends TestSuite {
                 .withFieldRenamed(_.age, _.wiek)
                 .transform
           """)
-          .check("", "Unable to find default value in scala.util.Left[scala.Unit, scala.Int] or method in scala.None.type for \"value\" at .age.None$")
+          .check(
+            "",
+            "Unable to find default value in scala.util.Left[scala.Unit, scala.Int] or method in scala.None.type for \"value\" at .age.None$"
+          )
       }
     }
 
@@ -304,7 +331,10 @@ object TransformerDslSpec extends TestSuite {
         import RelabelingOfFieldSpec.*
 
         compileError("""Foo(10, "something").transformInto[Bar]""")
-          .check("", "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar or method in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo for \"z\" at ")
+          .check(
+            "",
+            "Unable to find default value in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar or method in io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo for \"z\" at "
+          )
       }
 
       "relabel fields with relabelling modifier" - {
@@ -320,7 +350,10 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(_.y + "abc", _.z)
               .transform
           """)
-          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))""")
+          .check(
+            "",
+            """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))"""
+          )
 
         compileError("""
             val haveY = HaveY("")
@@ -329,7 +362,10 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(cc => haveY.y, _.z)
               .transform
           """)
-          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)""")
+          .check(
+            "",
+            """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)"""
+          )
 
         compileError("""
             Foo(10, "something")
@@ -337,7 +373,10 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(_.y, _.z + "abc")
               .transform
           """)
-          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => x.z.+("abc")""")
+          .check(
+            "",
+            """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => x.z.+("abc")"""
+          )
 
         compileError("""
             val haveZ = HaveZ("")
@@ -346,7 +385,10 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(_.y, cc => haveZ.z)
               .transform
           """)
-          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => haveZ.z)""")
+          .check(
+            "",
+            """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Bar) => haveZ.z)"""
+          )
 
         compileError("""
             Foo(10, "something")
@@ -354,7 +396,10 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(_.y + "abc", _.z + "abc")
               .transform
           """)
-          .check("", """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))""")
+          .check(
+            "",
+            """Illegal selector: ((x: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => x.y.+("abc"))"""
+          )
 
         compileError("""
             val haveY = HaveY("")
@@ -364,17 +409,30 @@ object TransformerDslSpec extends TestSuite {
               .withFieldRenamed(cc => haveY.y, cc => haveZ.z)
               .transform
           """)
-          .check("", """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)""")
+          .check(
+            "",
+            """Illegal selector: ((cc: io.scalaland.chimney.TransformerDslSpec.RelabelingOfFieldSpec.Foo) => haveY.y)"""
+          )
       }
 
       "not compile if relabelled - a wrong way" - {
         import RelabelingOfFieldSpec.*
 
-        compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform""")
-          .check("", "Automatic derivation for supplied types (from java.lang.String to scala.Int) not supported at .y")
+        compileError(
+          """Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.x).transform"""
+        )
+          .check(
+            "",
+            "Automatic derivation for supplied types (from java.lang.String to scala.Int) not supported at .y"
+          )
 
-        compileError("""Foo(10, "something").into[Bar].withFieldRenamed(_.x, _.z).transform""")
-          .check("", "Automatic derivation for supplied types (from scala.Int to java.lang.String) not supported at .x")
+        compileError(
+          """Foo(10, "something").into[Bar].withFieldRenamed(_.x, _.z).transform"""
+        )
+          .check(
+            "",
+            "Automatic derivation for supplied types (from scala.Int to java.lang.String) not supported at .x"
+          )
       }
 
     }
@@ -384,7 +442,9 @@ object TransformerDslSpec extends TestSuite {
 
       "support scala.Option" - {
         Option(Foo("a")).transformInto[Option[Bar]] ==> Option(Bar("a"))
-        (Some(Foo("a")): Option[Foo]).transformInto[Option[Bar]] ==> Option(Bar("a"))
+        (Some(Foo("a")): Option[Foo]).transformInto[Option[Bar]] ==> Option(
+          Bar("a")
+        )
         Some(Foo("a")).transformInto[Option[Bar]] ==> Some(Bar("a"))
         (None: Option[Foo]).transformInto[Option[Bar]] ==> None
         (None: Option[String]).transformInto[Option[String]] ==> None
@@ -392,14 +452,18 @@ object TransformerDslSpec extends TestSuite {
       }
 
       "support scala.util.Either" - {
-        (Left(Foo("a")): Either[Foo, Foo]).transformInto[Either[Bar, Bar]] ==> Left(Bar("a"))
-        (Right(Foo("a")): Either[Foo, Foo]).transformInto[Either[Bar, Bar]] ==> Right(Bar("a"))
+        (Left(Foo("a")): Either[Foo, Foo])
+          .transformInto[Either[Bar, Bar]] ==> Left(Bar("a"))
+        (Right(Foo("a")): Either[Foo, Foo])
+          .transformInto[Either[Bar, Bar]] ==> Right(Bar("a"))
         // Left(Foo("a")).transformInto[Either[Bar, Bar]] ==> Left(Bar("a"))
         // Right(Foo("a")).transformInto[Either[Bar, Bar]] ==> Right(Bar("a"))
         // Left(Foo("a")).transformInto[Left[Bar, Bar]] ==> Left(Bar("a"))
         // Right(Foo("a")).transformInto[Right[Bar, Bar]] ==> Right(Bar("a"))
-        (Left("a"): Either[String, String]).transformInto[Either[String, String]] ==> Left("a")
-        (Right("a"): Either[String, String]).transformInto[Either[String, String]] ==> Right("a")
+        (Left("a"): Either[String, String])
+          .transformInto[Either[String, String]] ==> Left("a")
+        (Right("a"): Either[String, String])
+          .transformInto[Either[String, String]] ==> Right("a")
       }
 
       "support Iterables collections" - {
@@ -434,31 +498,44 @@ object TransformerDslSpec extends TestSuite {
 
         Vector("a").transformInto[Array[String]] ==> Array("a")
         List(1, 6, 3).transformInto[Array[Int]] ==> Array(1, 6, 3)
-        Seq(Bar("x"), Bar("y")).transformInto[Array[Foo]] ==> Array(Foo("x"), Foo("y"))
+        Seq(Bar("x"), Bar("y"))
+          .transformInto[Array[Foo]] ==> Array(Foo("x"), Foo("y"))
       }
 
       "support Map" - {
-        Map("test" -> Foo("a")).transformInto[Map[String, Bar]] ==> Map("test" -> Bar("a"))
-        Map("test" -> "a").transformInto[Map[String, String]] ==> Map("test" -> "a")
-        Map(Foo("test") -> "x").transformInto[Map[Bar, String]] ==> Map(Bar("test") -> "x")
-        Map(Foo("test") -> Foo("x")).transformInto[Map[Bar, Bar]] ==> Map(Bar("test") -> Bar("x"))
+        Map("test" -> Foo("a")).transformInto[Map[String, Bar]] ==> Map(
+          "test" -> Bar("a")
+        )
+        Map("test" -> "a").transformInto[Map[String, String]] ==> Map(
+          "test" -> "a"
+        )
+        Map(Foo("test") -> "x").transformInto[Map[Bar, String]] ==> Map(
+          Bar("test") -> "x"
+        )
+        Map(Foo("test") -> Foo("x")).transformInto[Map[Bar, Bar]] ==> Map(
+          Bar("test") -> Bar("x")
+        )
       }
 
       "support conversion between Iterables and Maps" - {
 
-        Seq(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+        Seq(Foo("10") -> Bar("20"), Foo("20") -> Bar("40"))
+          .transformInto[Map[Bar, Foo]] ==>
           Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
 
-        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[List[(Bar, Foo)]] ==>
+        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40"))
+          .transformInto[List[(Bar, Foo)]] ==>
           List(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
       }
 
       "support conversion between Arrays and Maps" - {
 
-        Array(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Map[Bar, Foo]] ==>
+        Array(Foo("10") -> Bar("20"), Foo("20") -> Bar("40"))
+          .transformInto[Map[Bar, Foo]] ==>
           Map(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
 
-        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40")).transformInto[Array[(Bar, Foo)]] ==>
+        Map(Foo("10") -> Bar("20"), Foo("20") -> Bar("40"))
+          .transformInto[Array[(Bar, Foo)]] ==>
           Array(Bar("10") -> Foo("20"), Bar("20") -> Foo("40"))
       }
 
@@ -469,11 +546,15 @@ object TransformerDslSpec extends TestSuite {
       "enum types encoded as sealed hierarchies of case objects" - {
         "transforming from smaller to bigger enum" - {
 
-          inline given transformer: Transformer[colors1.Color, colors2.Color] = Transformer.derived[colors1.Color, colors2.Color]
+          inline given transformer: Transformer[colors1.Color, colors2.Color] =
+            Transformer.derived[colors1.Color, colors2.Color]
 
-          (colors1.Red: colors1.Color).transformInto[colors2.Color] ==> colors2.Red
-          (colors1.Green: colors1.Color).transformInto[colors2.Color] ==> colors2.Green
-          (colors1.Blue: colors1.Color).transformInto[colors2.Color] ==> colors2.Blue
+          (colors1.Red: colors1.Color)
+            .transformInto[colors2.Color] ==> colors2.Red
+          (colors1.Green: colors1.Color)
+            .transformInto[colors2.Color] ==> colors2.Green
+          (colors1.Blue: colors1.Color)
+            .transformInto[colors2.Color] ==> colors2.Blue
         }
 
         "transforming from bigger to smaller enum" - {
@@ -481,16 +562,22 @@ object TransformerDslSpec extends TestSuite {
           def blackIsRed(b: colors2.Black.type): colors1.Color =
             colors1.Red
 
-          inline given transformer: Transformer[colors2.Color, colors1.Color] = 
-            defaultDefinition[colors2.Color, colors1.Color].withCoproductInstance(blackIsRed).buildTransformer
+          inline given transformer: Transformer[colors2.Color, colors1.Color] =
+            defaultDefinition[colors2.Color, colors1.Color]
+              .withCoproductInstance(blackIsRed)
+              .buildTransformer
 
-          (colors2.Black: colors2.Color).transformInto[colors1.Color] ==> colors1.Red
+          (colors2.Black: colors2.Color)
+            .transformInto[colors1.Color] ==> colors1.Red
 
-          (colors2.Red: colors2.Color).transformInto[colors1.Color] ==> colors1.Red
+          (colors2.Red: colors2.Color)
+            .transformInto[colors1.Color] ==> colors1.Red
 
-          (colors2.Green: colors2.Color).transformInto[colors1.Color] ==> colors1.Green
+          (colors2.Green: colors2.Color)
+            .transformInto[colors1.Color] ==> colors1.Green
 
-          (colors2.Blue: colors2.Color).transformInto[colors1.Color] ==> colors1.Blue
+          (colors2.Blue: colors2.Color)
+            .transformInto[colors1.Color] ==> colors1.Blue
         }
 
       }
@@ -517,13 +604,19 @@ object TransformerDslSpec extends TestSuite {
           )
 
         val triangle: shapes1.Shape =
-          shapes1.Triangle(shapes1.Point(0, 0), shapes1.Point(2, 2), shapes1.Point(2, 0))
+          shapes1.Triangle(
+            shapes1.Point(0, 0),
+            shapes1.Point(2, 2),
+            shapes1.Point(2, 0)
+          )
 
         triangle
           .into[shapes2.Shape]
           .withCoproductInstance(triangleToPolygon)
           .withCoproductInstance(rectangleToPolygon)
-          .transform ==> shapes2.Polygon(List(shapes2.Point(0, 0), shapes2.Point(2, 2), shapes2.Point(2, 0)))
+          .transform ==> shapes2.Polygon(
+          List(shapes2.Point(0, 0), shapes2.Point(2, 2), shapes2.Point(2, 0))
+        )
       }
 
       "transforming isomorphic domains that differ a detail" - {
@@ -532,9 +625,17 @@ object TransformerDslSpec extends TestSuite {
           (_: Int).toDouble
 
         (shapes1
-          .Triangle(shapes1.Point(0, 0), shapes1.Point(2, 2), shapes1.Point(2, 0)): shapes1.Shape)
+          .Triangle(
+            shapes1.Point(0, 0),
+            shapes1.Point(2, 2),
+            shapes1.Point(2, 0)
+          ): shapes1.Shape)
           .transformInto[shapes3.Shape] ==>
-          shapes3.Triangle(shapes3.Point(2.0, 0.0), shapes3.Point(2.0, 2.0), shapes3.Point(0.0, 0.0))
+          shapes3.Triangle(
+            shapes3.Point(2.0, 0.0),
+            shapes3.Point(2.0, 2.0),
+            shapes3.Point(0.0, 0.0)
+          )
 
         (shapes1
           .Rectangle(shapes1.Point(0, 0), shapes1.Point(6, 4)): shapes1.Shape)
@@ -552,7 +653,10 @@ object TransformerDslSpec extends TestSuite {
         monoSource.transformInto[PolyTarget[String]] ==> polyTarget
 
         def transform[T]: (String => T) => MonoSource => PolyTarget[T] =
-          fun => _.into[PolyTarget[T]].withFieldComputed(_.poly, src => fun(src.poly)).transform
+          fun =>
+            _.into[PolyTarget[T]]
+              .withFieldComputed(_.poly, src => fun(src.poly))
+              .transform
 
         transform[String](identity)(monoSource) ==> polyTarget
       }
@@ -560,7 +664,9 @@ object TransformerDslSpec extends TestSuite {
       "polymorphic source to monomorphic target" - {
 
         def transform[T]: PolySource[T] => MonoTarget =
-          _.into[MonoTarget].withFieldComputed(_.poly, _.poly.toString).transform
+          _.into[MonoTarget]
+            .withFieldComputed(_.poly, _.poly.toString)
+            .transform
 
         transform[String](polySource) ==> monoTarget
       }
@@ -595,7 +701,8 @@ object TransformerDslSpec extends TestSuite {
         .withFieldComputed(_.y, _.x.length)
 
       val transformer1 = partialTransformer.withFieldConst(_.z, 1.0)
-      val transformer2 = partialTransformer.withFieldComputed(_.z, _.x.length * 2.0)
+      val transformer2 =
+        partialTransformer.withFieldComputed(_.z, _.x.length * 2.0)
 
       transformer1.transform ==> Bar(1.0, 3, "abc")
       transformer2.transform ==> Bar(6.0, 3, "abc")
@@ -619,18 +726,76 @@ object TransformerDslSpec extends TestSuite {
       }
 
       "generated automatically" - {
-        given fooToBarTransformer: Transformer[Foo, Bar] = Transformer.derived[Foo, Bar]
+        given fooToBarTransformer: Transformer[Foo, Bar] =
+          Transformer.derived[Foo, Bar]
 
         Foo(Some(Foo(None))).transformInto[Bar] ==> Bar(Some(Bar(None)))
       }
 
       "support mutual recursion" - {
 
-        given bar1ToBar2Transformer: Transformer[Bar1, Bar2] = Transformer.derived[Bar1, Bar2]
+        given bar1ToBar2Transformer: Transformer[Bar1, Bar2] =
+          Transformer.derived[Bar1, Bar2]
 
-        Bar1(1, Baz(Some(Bar1(2, Baz(None))))).transformInto[Bar2] ==> Bar2(Baz(Some(Bar2(Baz(None)))))
+        Bar1(1, Baz(Some(Bar1(2, Baz(None))))).transformInto[Bar2] ==> Bar2(
+          Baz(Some(Bar2(Baz(None))))
+        )
       }
     }
+
+    "support conversion from java beans" - {
+      import io.scalaland.chimney.example.*
+
+      val bean = new JavaBean
+      bean.setId(42)
+      bean.setName(null)
+
+      "converting directly with nulls" - {
+        bean.into[ScalaBean].enableBeanGetters.transform ==> ScalaBean(42, null)
+      }
+
+      "converting nulls to Option.None if possible" - {
+        bean.into[ScalaBeanOpt].enableBeanGetters.transform ==> ScalaBeanOpt(
+          Some(42),
+          None
+        )
+      }
+      val javaInput = new java.util.ArrayList[Int]()
+      javaInput.add(1)
+      javaInput.add(11)
+
+      "converting nested java beans to scala classes" - {
+        import scala.jdk.CollectionConverters._
+        val nestingBean = new NestedBean()
+        val bean = new JavaBean
+        bean.setId(42)
+        bean.setName(null)
+
+        nestingBean.setIds(javaInput.asInstanceOf)
+        nestingBean.setNested(bean)
+
+        nestingBean
+          .into[NestedScalaBean]
+          .enableBeanGetters
+          .withFieldComputed(_.ids, _.getIds.asScala.toList)
+          .transform ==> NestedScalaBean(
+          List(1, 11),
+          ScalaBeanOpt(Some(42), None)
+        )
+
+      }
+    }
+
+//    "suppot conversion to java beans" - {
+//      import io.scalaland.chimney.example.JavaBean
+//
+//      "converting directly" - {
+//        val bean = ScalaBean(42, "testing")
+//        val result = bean.into[JavaBean].enableBeanSetters.transform
+//        result.getId ==> 42
+//        result.getName ==> "testing"
+//      }
+//    }
 
   }
 
@@ -639,10 +804,16 @@ object TransformerDslSpec extends TestSuite {
   case class Foobar(x: String, y: Option[Int])
   case class Foobar2(x: String, y: Option[Int] = Some(42))
 
-  lazy val fooToFoobarOptDefault = SomeFoo("foo").into[Foobar].enableOptionDefaultsToNone.transform
-  lazy val fooToFoobar2OptDefNone = SomeFoo("foo").into[Foobar2].disableDefaultValues.enableOptionDefaultsToNone.transform
+  lazy val fooToFoobarOptDefault =
+    SomeFoo("foo").into[Foobar].enableOptionDefaultsToNone.transform
+  lazy val fooToFoobar2OptDefNone = SomeFoo("foo")
+    .into[Foobar2]
+    .disableDefaultValues
+    .enableOptionDefaultsToNone
+    .transform
   lazy val fooToFoobar2NoOptDef = SomeFoo("foo").into[Foobar2].transform
-  lazy val fooToFoobar2PrederDefault = SomeFoo("foo").into[Foobar2].enableOptionDefaultsToNone.transform
+  lazy val fooToFoobar2PrederDefault =
+    SomeFoo("foo").into[Foobar2].enableOptionDefaultsToNone.transform
 
   object DefaultSupportSpecs {
     case class Foo(x: Int)
@@ -651,33 +822,47 @@ object TransformerDslSpec extends TestSuite {
     case class Baah(x: Int, y: Foo = Foo(0))
     case class Baahr(x: Int, y: Bar)
 
-    def `field does not exists - the source-single` = Foo(10).transformInto[Bar] ==> Bar(10, 30L)
-    def `field does not exists - the source-sequence` = Seq(Foo(30), Foo(40)).transformInto[Seq[Bar]] ==> Seq(Bar(30, 30L), Bar(40, 30L))
+    def `field does not exists - the source-single` =
+      Foo(10).transformInto[Bar] ==> Bar(10, 30L)
+    def `field does not exists - the source-sequence` = Seq(Foo(30), Foo(40))
+      .transformInto[Seq[Bar]] ==> Seq(Bar(30, 30L), Bar(40, 30L))
 
-    def `field does not exists - nested object` = Baah(10, Foo(300)).transformInto[Baahr] ==> Baahr(10, Bar(300, 30L))
+    def `field does not exists - nested object` =
+      Baah(10, Foo(300)).transformInto[Baahr] ==> Baahr(10, Bar(300, 30L))
 
-    def `field exists - the source-single` = Bar(100, 200L).transformInto[Baz] ==> Baz(100, 200L)
-    def `field exists - the source-sequence` = Seq(Bar(100, 200L), Bar(300, 400L)).transformInto[Seq[Baz]] ==> Seq(Baz(100, 200L), Baz(300, 400L))
+    def `field exists - the source-single` =
+      Bar(100, 200L).transformInto[Baz] ==> Baz(100, 200L)
+    def `field exists - the source-sequence` =
+      Seq(Bar(100, 200L), Bar(300, 400L))
+        .transformInto[Seq[Baz]] ==> Seq(Baz(100, 200L), Baz(300, 400L))
 
-    def `another modifier is provided` = Foo(10).into[Bar].withFieldConst(_.y, 45L).transform ==> Bar(10, 45L) 
+    def `another modifier is provided` =
+      Foo(10).into[Bar].withFieldConst(_.y, 45L).transform ==> Bar(10, 45L)
 
     def `default values are disabled and another modifier is provided-one` =
-      Foo(10).into[Bar].disableDefaultValues.withFieldConst(_.y, 45L).transform ==> Bar(10, 45L)
+      Foo(10)
+        .into[Bar]
+        .disableDefaultValues
+        .withFieldConst(_.y, 45L)
+        .transform ==> Bar(10, 45L)
 
     def `default values are disabled and another modifier is provided-two` =
-      Foo(10).into[Bar].withFieldConst(_.y, 48L).disableDefaultValues.transform ==> Bar(10, 48L)
+      Foo(10)
+        .into[Bar]
+        .withFieldConst(_.y, 48L)
+        .disableDefaultValues
+        .transform ==> Bar(10, 48L)
 
     def `local transformer for default value exists` =
       given localTransformer: Transformer[Long, Foo] with
-        def transform(from: Long): Foo = Foo(from.toInt * 10)          
-      
-      Bar(100, 300L).transformInto[Baah] ==> Baah(100, Foo(3000))
+        def transform(from: Long): Foo = Foo(from.toInt * 10)
 
+      Bar(100, 300L).transformInto[Baah] ==> Baah(100, Foo(3000))
 
     def `local transformer for the whole entity exists` =
       given fooBarTransformer: Transformer[Foo, Bar] with
         def transform(from: Foo): Bar = Bar(from.x, 333L)
-      
+
       Foo(333).transformInto[Bar] ==> Bar(333, 333L)
 
   }
@@ -688,11 +873,12 @@ object TransformerDslSpec extends TestSuite {
     def ageToWiekTransformer: Transformer[Option[Int], Either[Unit, Int]] =
       new Transformer[Option[Int], Either[Unit, Int]] {
         def transform(obj: Option[Int]): Either[Unit, Int] =
-         obj.fold[Either[Unit, Int]](Left(()))(Right.apply)
+          obj.fold[Either[Unit, Int]](Left(()))(Right.apply)
       }
 
     def `between different types: correct` =
-      given trans: Transformer[Option[Int], Either[Unit, Int]] = ageToWiekTransformer
+      given trans: Transformer[Option[Int], Either[Unit, Int]] =
+        ageToWiekTransformer
 
       val user: User = User(1, "Kuba", Some(28))
       val userPl = UserPL(1, "Kuba", Right(28))
@@ -702,8 +888,9 @@ object TransformerDslSpec extends TestSuite {
         .withFieldRenamed(_.age, _.wiek)
         .transform ==> userPl
 
-    def `between different types: incorrect` =  
-      given trans: Transformer[Option[Int], Either[Unit, Int]] = ageToWiekTransformer
+    def `between different types: incorrect` =
+      given trans: Transformer[Option[Int], Either[Unit, Int]] =
+        ageToWiekTransformer
 
       val user: User = User(1, "Kuba", None)
       val userPl = UserPL(1, "Kuba", Left(()))
@@ -712,7 +899,7 @@ object TransformerDslSpec extends TestSuite {
         .withFieldRenamed(_.name, _.imie)
         .withFieldRenamed(_.age, _.wiek)
         .transform ==> userPl
-    
+
   }
 
   object RelabelingOfFieldSpec {
@@ -721,8 +908,11 @@ object TransformerDslSpec extends TestSuite {
     case class HaveY(y: String)
     case class HaveZ(z: String)
 
-    def `relabel fields with relabelling modifier` = 
-      Foo(10, "something").into[Bar].withFieldRenamed(_.y, _.z).transform ==> Bar(10, "something")
+    def `relabel fields with relabelling modifier` =
+      Foo(10, "something")
+        .into[Bar]
+        .withFieldRenamed(_.y, _.z)
+        .transform ==> Bar(10, "something")
 
   }
 
@@ -781,3 +971,18 @@ object Poly {
   val monoTarget = MonoTarget("test", "test")
   val polyTarget = PolyTarget("test", "test")
 }
+
+case class ScalaBean(
+  id: Int,
+  name: String
+)
+
+case class ScalaBeanOpt(
+  id: Option[Int],
+  name: Option[String]
+)
+
+case class NestedScalaBean(
+  ids: List[Int],
+  nested: ScalaBeanOpt
+)

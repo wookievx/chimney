@@ -23,6 +23,33 @@ object MockTest extends TestSuite:
         shortCases.map(_.transformIntoF[Option, long.NumScale[Int]]) ==> expectedLongCases
       }
     }
+
+    "Transformer" - {
+      "correctly derive definition with new macros" - {
+        import TransformerDslSpec.RelabelingOfFieldSpec.*
+        import internal.derived.TransformerDerive
+        val t = TransformerDerive.derived(defaultDefinition[Foo, Bar].withFieldRenamed(_.y, _.z))
+        val tComputed = TransformerDerive.derived(defaultDefinition[Foo, Bar].withFieldComputed(_.z, foo => s"Got $foo"))
+        t.transform(Foo(10, "something")) ==> Bar(10, "something")
+        tComputed.transform(Foo(10, "something")) ==> Bar(10, "Got Foo(10,something)")
+      }
+
+      "correctly convert collections with new macros" - {
+        import TransformerDslSpec.RelabelingOfFieldSpec.*
+        import internal.derived.TransformerDerive
+        val t = TransformerDerive.derived(defaultDefinition[List[Foo], Array[Foo]])
+        t.transform(List(Foo(10, "something"), Foo(20, "nothing"))) ==> Array(Foo(10, "something"), Foo(20, "nothing"))
+      }
+
+      "correctly convert enums" - {
+        import internal.derived.TransformerDerive
+
+        val t = exampleEnum
+
+        t.transform(Source.First("Anything")) ==> Target.Third(42)
+        t.transform(Source.Second(420)) ==> Target.Second(420)
+      }
+    }
   }
 
   given identityInt: Transformer[Int, Long] with
@@ -57,5 +84,19 @@ object MockTest extends TestSuite:
 
   }
 
+  enum Source:
+    case First(field: String)
+    case Second(field: Int)
+  end Source
+
+  enum Target:
+    case Second(field: Int)
+    case Third(small: Short)
+  end Target
+
+  def exampleEnum = {
+    import internal.derived.TransformerDerive
+    TransformerDerive.derived(defaultDefinition[Source, Target].withCoproductInstance[Source.First, Target.Third](_ => Target.Third(42)))
+  }
 
 end MockTest

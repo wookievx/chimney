@@ -18,11 +18,16 @@ object TransformerDslFSpec extends TestSuite {
     "transform always succeeds" - {
 
       "option" - {
-        Person("John", 10, 140).transformIntoF[Option, User] ==> Some(User("John", 10, 140))
+        Person("John", 10, 140).transformIntoF[Option, User] ==> Some(
+          User("John", 10, 140)
+        )
       }
 
       "either" - {
-        Person("John", 10, 140).transformIntoF[[t] =>> Either[Vector[String], t], User] ==> Right(User("John", 10, 140))
+        Person("John", 10, 140)
+          .transformIntoF[[t] =>> Either[Vector[String], t], User] ==> Right(
+          User("John", 10, 140)
+        )
       }
 
     }
@@ -82,7 +87,10 @@ object TransformerDslFSpec extends TestSuite {
             okForm
               .intoF[[t] =>> Either[List[String], t], Person]
               .withFieldConst(_.name, "Joe")
-              .withFieldComputedF(_.height, _.height.parseDouble.toEither("bad height"))
+              .withFieldComputedF(
+                _.height,
+                _.height.parseDouble.toEither("bad height")
+              )
               .withFieldComputedF(_.age, _.age.parseInt.toEither("bad age"))
               .transform ==> Right(Person("Joe", 10, 140))
           }
@@ -93,7 +101,12 @@ object TransformerDslFSpec extends TestSuite {
           "option" - {
             okForm
               .into[Person]
-              .withFieldComputedF(_.name, pf => if (pf.name.isEmpty) None else Some(pf.name.toUpperCase()))
+              .withFieldComputedF(
+                _.name,
+                pf =>
+                  if (pf.name.isEmpty) None
+                  else Some(pf.name.toUpperCase())
+              )
               .withFieldComputedF(_.age, _.age.parseInt)
               .withFieldComputedF(_.height, _.height.parseDouble)
               .transform ==> Some(Person("JOHN", 10, 140))
@@ -109,7 +122,10 @@ object TransformerDslFSpec extends TestSuite {
                   else Right(pf.name.toUpperCase())
               )
               .withFieldComputedF(_.age, _.age.parseInt.toEither("bad age"))
-              .withFieldComputedF(_.height, _.height.parseDouble.toEither("bad height"))
+              .withFieldComputedF(
+                _.height,
+                _.height.parseDouble.toEither("bad height")
+              )
               .transform ==> Right(Person("JOHN", 10, 140))
           }
         }
@@ -136,8 +152,13 @@ object TransformerDslFSpec extends TestSuite {
                 else Right(pf.name.toUpperCase())
             )
             .withFieldComputedF(_.age, _.age.parseInt.toEither("bad age"))
-            .withFieldComputedF(_.height, _.age.parseDouble.toEither("bad double"))
-            .transform ==> Left(List("empty name")) //really don't want to accumulate for now, support instance would need to be accumulating, and it is not
+            .withFieldComputedF(
+              _.height,
+              _.age.parseDouble.toEither("bad double")
+            )
+            .transform ==> Left(
+            List("empty name")
+          ) //really don't want to accumulate for now, support instance would need to be accumulating, and it is not
         }
       }
 
@@ -151,8 +172,12 @@ object TransformerDslFSpec extends TestSuite {
         given intPrinter: Transformer[Int, String] = _.toString
 
         "F = Option" - {
-          Option(123).transformIntoF[Option, Option[String]] ==> Some(Some("123"))
-          Option.empty[Int].transformIntoF[Option, Option[String]] ==> Some(None)
+          Option(123).transformIntoF[Option, Option[String]] ==> Some(
+            Some("123")
+          )
+          Option.empty[Int].transformIntoF[Option, Option[String]] ==> Some(
+            None
+          )
         }
 
         "F = Either[List[String], +*]]" - {
@@ -168,7 +193,9 @@ object TransformerDslFSpec extends TestSuite {
 
           Option("123").transformIntoF[Option, Option[Int]] ==> Some(Some(123))
           Option("abc").transformIntoF[Option, Option[Int]] ==> None
-          Option.empty[String].transformIntoF[Option, Option[Int]] ==> Some(None)
+          Option.empty[String].transformIntoF[Option, Option[Int]] ==> Some(
+            None
+          )
         }
 
         "F = Either[List[String], +*]]" - {
@@ -192,7 +219,7 @@ object TransformerDslFSpec extends TestSuite {
 
         "F = Option" - {
           10.transformIntoF[Option, Option[String]] ==> Some(Some("10"))
-          (null: String).transformIntoF[Option, Option[String]] ==> Some(None)
+          (null: String).transformIntoF[Option, Option[String]] ==> None
         }
 
         "F = Either[List[String], +*]]" - {
@@ -207,7 +234,7 @@ object TransformerDslFSpec extends TestSuite {
           given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
 
           "10".transformIntoF[Option, Option[Int]] ==> Some(Some(10))
-          (null: String).transformIntoF[Option, Option[Int]] ==> Some(None)
+          (null: String).transformIntoF[Option, Option[Int]] ==> None
           "x".transformIntoF[Option, Option[Int]] ==> None
         }
 
@@ -216,7 +243,9 @@ object TransformerDslFSpec extends TestSuite {
             _.parseInt.toEither("bad int")
 
           "10".transformIntoF[E, Option[Int]] ==> Right(Some(10))
-          (null: String).transformIntoF[E, Option[Int]] ==> Right(None)
+          (null: String).transformIntoF[E, Option[Int]] ==> Left(
+            List("bad int")
+          )
           "x".transformIntoF[E, Option[Int]] ==> Left(List("bad int"))
         }
       }
@@ -230,27 +259,49 @@ object TransformerDslFSpec extends TestSuite {
         implicit val intPrinter: Transformer[Int, String] = _.toString
 
         "F = Option" - {
-          List(123, 456).transformIntoF[Option, List[String]] ==> Some(List("123", "456"))
-          Vector(123, 456).transformIntoF[Option, Queue[String]] ==> Some(Queue("123", "456"))
-          Array.empty[Int].transformIntoF[Option, Seq[String]] ==> Some(Seq.empty[String])
+          List(123, 456).transformIntoF[Option, List[String]] ==> Some(
+            List("123", "456")
+          )
+          Vector(123, 456).transformIntoF[Option, Queue[String]] ==> Some(
+            Queue("123", "456")
+          )
+          Array.empty[Int].transformIntoF[Option, Seq[String]] ==> Some(
+            Seq.empty[String]
+          )
         }
 
         "F = Either[List[String], +*]]" - {
-          List(123, 456).transformIntoF[E, List[String]] ==> Right(List("123", "456"))
-          Vector(123, 456).transformIntoF[E, Queue[String]] ==> Right(Queue("123", "456"))
-          Array.empty[Int].transformIntoF[E, Seq[String]] ==> Right(Seq.empty[String])
+          List(123, 456).transformIntoF[E, List[String]] ==> Right(
+            List("123", "456")
+          )
+          Vector(123, 456).transformIntoF[E, Queue[String]] ==> Right(
+            Queue("123", "456")
+          )
+          Array.empty[Int].transformIntoF[E, Seq[String]] ==> Right(
+            Seq.empty[String]
+          )
         }
       }
 
       "wrapped inner transformer" - {
 
         "F = Option" - {
-          implicit val intParserOpt: TransformerF[Option, String, Int] = _.parseInt
+          implicit val intParserOpt: TransformerF[Option, String, Int] =
+            _.parseInt
 
-          List("123", "456").transformIntoF[Option, List[Int]] ==> Some(List(123, 456))
-          Vector("123", "456").transformIntoF[Option, Queue[Int]] ==> Some(Queue(123, 456))
-          Array.empty[String].transformIntoF[Option, Seq[Int]] ==> Some(Seq.empty[Int])
-          Set("123", "456").transformIntoF[Option, Array[Int]].get.sorted ==> Array(123, 456)
+          List("123", "456").transformIntoF[Option, List[Int]] ==> Some(
+            List(123, 456)
+          )
+          Vector("123", "456").transformIntoF[Option, Queue[Int]] ==> Some(
+            Queue(123, 456)
+          )
+          Array.empty[String].transformIntoF[Option, Seq[Int]] ==> Some(
+            Seq.empty[Int]
+          )
+          Set("123", "456")
+            .transformIntoF[Option, Array[Int]]
+            .get
+            .sorted ==> Array(123, 456)
 
           List("abc", "456").transformIntoF[Option, List[Int]] ==> None
           Vector("123", "def").transformIntoF[Option, Queue[Int]] ==> None
@@ -259,18 +310,37 @@ object TransformerDslFSpec extends TestSuite {
         }
 
         "F = Either[List[String], +*]]" - {
-          given intParserEither: TransformerF[[t] =>> Either[List[String], t], String, Int] =
+          given intParserEither
+            : TransformerF[[t] =>> Either[List[String], t], String, Int] =
             _.parseInt.toEither("bad int")
 
-          List("123", "456").transformIntoF[E, List[Int]] ==> Right(List(123, 456))
-          Vector("123", "456").transformIntoF[E, Queue[Int]] ==> Right(Queue(123, 456))
-          Array.empty[String].transformIntoF[E, Seq[Int]] ==> Right(Seq.empty[Int])
-          Set("123", "456").transformIntoF[E, Array[Int]].toOption.get.sorted ==> Array(123, 456)
+          List("123", "456").transformIntoF[E, List[Int]] ==> Right(
+            List(123, 456)
+          )
+          Vector("123", "456").transformIntoF[E, Queue[Int]] ==> Right(
+            Queue(123, 456)
+          )
+          Array.empty[String].transformIntoF[E, Seq[Int]] ==> Right(
+            Seq.empty[Int]
+          )
+          Set("123", "456")
+            .transformIntoF[E, Array[Int]]
+            .toOption
+            .get
+            .sorted ==> Array(123, 456)
 
-          List("abc", "456").transformIntoF[E, List[Int]] ==> Left(List("bad int"))
-          Vector("123", "def").transformIntoF[E, Queue[Int]] ==> Left(List("bad int"))
-          Array("abc", "def").transformIntoF[E, Seq[Int]] ==> Left(List("bad int"))
-          Set("123", "xyz").transformIntoF[E, Array[Int]] ==> Left(List("bad int"))
+          List("abc", "456").transformIntoF[E, List[Int]] ==> Left(
+            List("bad int")
+          )
+          Vector("123", "def").transformIntoF[E, Queue[Int]] ==> Left(
+            List("bad int")
+          )
+          Array("abc", "def").transformIntoF[E, Seq[Int]] ==> Left(
+            List("bad int")
+          )
+          Set("123", "xyz").transformIntoF[E, Array[Int]] ==> Left(
+            List("bad int")
+          )
         }
       }
     }
@@ -283,16 +353,44 @@ object TransformerDslFSpec extends TestSuite {
         given intPrinter: Transformer[Int, String] = _.toString
 
         "F = Option" - {
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, Map[String, String]] ==> Some(Map("1" -> "10", "2" -> "20"))
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, Map[String, Int]] ==> Some(Map("1" -> 10, "2" -> 20))
-          Seq(1 -> 10, 2 -> 20).transformIntoF[Option, Map[String, String]] ==> Some(Map("1" -> "10", "2" -> "20"))
-          ArrayBuffer(1 -> 10, 2 -> 20).transformIntoF[Option, Map[Int, String]] ==> Some(Map(1 -> "10", 2 -> "20"))
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, List[(String, String)]] ==> Some(List("1" -> "10", "2" -> "20"))
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, Vector[(String, Int)]] ==> Some(Vector("1" -> 10, "2" -> 20))
-          Array(1 -> 10, 2 -> 20).transformIntoF[Option, Map[String, String]] ==> Some(Map("1" -> "10", "2" -> "20"))
-          Array(1 -> 10, 2 -> 20).transformIntoF[Option, Map[Int, String]] ==> Some(Map(1 -> "10", 2 -> "20"))
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, Array[(String, String)]].get ==> Array("1" -> "10", "2" -> "20")
-          Map(1 -> 10, 2 -> 20).transformIntoF[Option, Array[(String, Int)]].get ==> Array("1" -> 10, "2" -> 20)
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[String, String]] ==> Some(
+            Map("1" -> "10", "2" -> "20")
+          )
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[String, Int]] ==> Some(
+            Map("1" -> 10, "2" -> 20)
+          )
+          Seq(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[String, String]] ==> Some(
+            Map("1" -> "10", "2" -> "20")
+          )
+          ArrayBuffer(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[Int, String]] ==> Some(
+            Map(1 -> "10", 2 -> "20")
+          )
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, List[(String, String)]] ==> Some(
+            List("1" -> "10", "2" -> "20")
+          )
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Vector[(String, Int)]] ==> Some(
+            Vector("1" -> 10, "2" -> 20)
+          )
+          Array(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[String, String]] ==> Some(
+            Map("1" -> "10", "2" -> "20")
+          )
+          Array(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Map[Int, String]] ==> Some(
+            Map(1 -> "10", 2 -> "20")
+          )
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Array[(String, String)]]
+            .get ==> Array("1" -> "10", "2" -> "20")
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[Option, Array[(String, Int)]]
+            .get ==> Array("1" -> 10, "2" -> 20)
         }
 
         "F = Either[List[String], +*]]" - {
@@ -312,9 +410,15 @@ object TransformerDslFSpec extends TestSuite {
             Right(Map("1" -> "10", "2" -> "20"))
           Array(1 -> 10, 2 -> 20).transformIntoF[E, Map[Int, String]] ==>
             Right(Map(1 -> "10", 2 -> "20"))
-          Map(1 -> 10, 2 -> 20).transformIntoF[E, Array[(String, String)]].toOption.get ==>
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[E, Array[(String, String)]]
+            .toOption
+            .get ==>
             Array("1" -> "10", "2" -> "20")
-          Map(1 -> 10, 2 -> 20).transformIntoF[E, Array[(String, Int)]].toOption.get ==>
+          Map(1 -> 10, 2 -> 20)
+            .transformIntoF[E, Array[(String, Int)]]
+            .toOption
+            .get ==>
             Array("1" -> 10, "2" -> 20)
         }
       }
@@ -324,29 +428,63 @@ object TransformerDslFSpec extends TestSuite {
         "F = Option" - {
           given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
 
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, Map[Int, Int]] ==> Some(Map(1 -> 10, 2 -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, Map[Int, String]] ==> Some(Map(1 -> "10", 2 -> "20"))
-          Seq("1" -> "10", "2" -> "20").transformIntoF[Option, Map[Int, Int]] ==> Some(Map(1 -> 10, 2 -> 20))
-          ArrayBuffer("1" -> "10", "2" -> "20").transformIntoF[Option, Map[String, Int]] ==>
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[Int, Int]] ==> Some(
+            Map(1 -> 10, 2 -> 20)
+          )
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[Int, String]] ==> Some(
+            Map(1 -> "10", 2 -> "20")
+          )
+          Seq("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[Int, Int]] ==> Some(
+            Map(1 -> 10, 2 -> 20)
+          )
+          ArrayBuffer("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[String, Int]] ==>
             Some(Map("1" -> 10, "2" -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, List[(Int, Int)]] ==> Some(List(1 -> 10, 2 -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, Vector[(Int, String)]] ==>
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, List[(Int, Int)]] ==> Some(
+            List(1 -> 10, 2 -> 20)
+          )
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Vector[(Int, String)]] ==>
             Some(Vector(1 -> "10", 2 -> "20"))
-          Array("1" -> "10", "2" -> "20").transformIntoF[Option, Map[Int, Int]] ==> Some(Map(1 -> 10, 2 -> 20))
-          Array("1" -> "10", "2" -> "20").transformIntoF[Option, Map[String, Int]] ==> Some(Map("1" -> 10, "2" -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, Array[(Int, Int)]].get ==> Array(1 -> 10, 2 -> 20)
-          Map("1" -> "10", "2" -> "20").transformIntoF[Option, Array[(Int, String)]].get ==> Array(1 -> "10", 2 -> "20")
+          Array("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[Int, Int]] ==> Some(
+            Map(1 -> 10, 2 -> 20)
+          )
+          Array("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[String, Int]] ==> Some(
+            Map("1" -> 10, "2" -> 20)
+          )
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Array[(Int, Int)]]
+            .get ==> Array(1 -> 10, 2 -> 20)
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[Option, Array[(Int, String)]]
+            .get ==> Array(1 -> "10", 2 -> "20")
 
-          Map("1" -> "x", "y" -> "20").transformIntoF[Option, Map[Int, Int]] ==> None
-          Map("x" -> "10", "2" -> "20").transformIntoF[Option, Map[Int, String]] ==> None
-          Seq("1" -> "10", "2" -> "x").transformIntoF[Option, Map[Int, Int]] ==> None
-          ArrayBuffer("1" -> "x", "2" -> "y").transformIntoF[Option, Map[String, Int]] ==> None
-          Map("x" -> "10", "y" -> "z").transformIntoF[Option, List[(Int, Int)]] ==> None
-          Map("1" -> "10", "x" -> "20").transformIntoF[Option, Vector[(Int, String)]] ==> None
-          Array("x" -> "y", "z" -> "v").transformIntoF[Option, Map[Int, Int]] ==> None
-          Array("1" -> "x", "2" -> "y").transformIntoF[Option, Map[String, Int]] ==> None
-          Map("1" -> "10", "x" -> "20").transformIntoF[Option, Array[(Int, Int)]] ==> None
-          Map("x" -> "10", "y" -> "20").transformIntoF[Option, Array[(Int, String)]] ==> None
+          Map("1" -> "x", "y" -> "20")
+            .transformIntoF[Option, Map[Int, Int]] ==> None
+          Map("x" -> "10", "2" -> "20")
+            .transformIntoF[Option, Map[Int, String]] ==> None
+          Seq("1" -> "10", "2" -> "x")
+            .transformIntoF[Option, Map[Int, Int]] ==> None
+          ArrayBuffer("1" -> "x", "2" -> "y")
+            .transformIntoF[Option, Map[String, Int]] ==> None
+          Map("x" -> "10", "y" -> "z")
+            .transformIntoF[Option, List[(Int, Int)]] ==> None
+          Map("1" -> "10", "x" -> "20")
+            .transformIntoF[Option, Vector[(Int, String)]] ==> None
+          Array("x" -> "y", "z" -> "v")
+            .transformIntoF[Option, Map[Int, Int]] ==> None
+          Array("1" -> "x", "2" -> "y")
+            .transformIntoF[Option, Map[String, Int]] ==> None
+          Map("1" -> "10", "x" -> "20")
+            .transformIntoF[Option, Array[(Int, Int)]] ==> None
+          Map("x" -> "10", "y" -> "20")
+            .transformIntoF[Option, Array[(Int, String)]] ==> None
         }
 
         "F = Either[List[String], +*]]" - {
@@ -359,19 +497,28 @@ object TransformerDslFSpec extends TestSuite {
             Right(Map(1 -> "10", 2 -> "20"))
           Seq("1" -> "10", "2" -> "20").transformIntoF[E, Map[Int, Int]] ==>
             Right(Map(1 -> 10, 2 -> 20))
-          ArrayBuffer("1" -> "10", "2" -> "20").transformIntoF[E, Map[String, Int]] ==>
+          ArrayBuffer("1" -> "10", "2" -> "20")
+            .transformIntoF[E, Map[String, Int]] ==>
             Right(Map("1" -> 10, "2" -> 20))
           Map("1" -> "10", "2" -> "20").transformIntoF[E, List[(Int, Int)]] ==>
             Right(List(1 -> 10, 2 -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[E, Vector[(Int, String)]] ==>
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[E, Vector[(Int, String)]] ==>
             Right(Vector(1 -> "10", 2 -> "20"))
           Array("1" -> "10", "2" -> "20").transformIntoF[E, Map[Int, Int]] ==>
             Right(Map(1 -> 10, 2 -> 20))
-          Array("1" -> "10", "2" -> "20").transformIntoF[E, Map[String, Int]] ==>
+          Array("1" -> "10", "2" -> "20")
+            .transformIntoF[E, Map[String, Int]] ==>
             Right(Map("1" -> 10, "2" -> 20))
-          Map("1" -> "10", "2" -> "20").transformIntoF[E, Array[(Int, Int)]].toOption.get ==>
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[E, Array[(Int, Int)]]
+            .toOption
+            .get ==>
             Array(1 -> 10, 2 -> 20)
-          Map("1" -> "10", "2" -> "20").transformIntoF[E, Array[(Int, String)]].toOption.get ==>
+          Map("1" -> "10", "2" -> "20")
+            .transformIntoF[E, Array[(Int, String)]]
+            .toOption
+            .get ==>
             Array(1 -> "10", 2 -> "20")
 
           Map("1" -> "x", "y" -> "20").transformIntoF[E, Map[Int, Int]] ==>
@@ -380,11 +527,14 @@ object TransformerDslFSpec extends TestSuite {
             Left(List("bad int"))
           Seq("1" -> "10", "2" -> "x").transformIntoF[E, Map[Int, Int]] ==>
             Left(List("bad int"))
-          ArrayBuffer("1" -> "x", "2" -> "y").transformIntoF[E, Map[String, Int]] ==>
+          ArrayBuffer("1" -> "x", "2" -> "y")
+            .transformIntoF[E, Map[String, Int]] ==>
             Left(List("bad int"))
-          Map("x" -> "10", "y" -> "z").transformIntoF[E, ArrayBuffer[(Int, Int)]] ==>
+          Map("x" -> "10", "y" -> "z")
+            .transformIntoF[E, ArrayBuffer[(Int, Int)]] ==>
             Left(List("bad int"))
-          Map("1" -> "10", "x" -> "20").transformIntoF[E, Vector[(Int, String)]] ==>
+          Map("1" -> "10", "x" -> "20")
+            .transformIntoF[E, Vector[(Int, String)]] ==>
             Left(List("bad int"))
           Array("x" -> "y", "z" -> "v").transformIntoF[E, Map[Int, Int]] ==>
             Left(List("bad int"))
@@ -392,7 +542,8 @@ object TransformerDslFSpec extends TestSuite {
             Left(List("bad int"))
           Map("1" -> "10", "x" -> "20").transformIntoF[E, Array[(Int, Int)]] ==>
             Left(List("bad int"))
-          Map("x" -> "10", "y" -> "20").transformIntoF[E, Array[(Int, String)]] ==>
+          Map("x" -> "10", "y" -> "20")
+            .transformIntoF[E, Array[(Int, String)]] ==>
             Left(List("bad int"))
         }
       }
@@ -408,8 +559,10 @@ object TransformerDslFSpec extends TestSuite {
 
         "F = Option" - {
 
-          (Left(1): Either[Int, Int]).transformIntoF[Option, Either[String, String]] ==> Some(Left("1"))
-          (Right(1): Either[Int, Int]).transformIntoF[Option, Either[String, String]] ==> Some(Right("1"))
+          (Left(1): Either[Int, Int])
+            .transformIntoF[Option, Either[String, String]] ==> Some(Left("1"))
+          (Right(1): Either[Int, Int])
+            .transformIntoF[Option, Either[String, String]] ==> Some(Right("1"))
           // Left(1).transformIntoF[Option, Either[String, String]] ==> Some(Left("1")) naked left/right not supported
           // Right(1).transformIntoF[Option, Either[String, String]] ==> Some(Right("1"))
           // Left(1).transformIntoF[Option, Left[String, String]] ==> Some(Left("1"))
@@ -418,9 +571,11 @@ object TransformerDslFSpec extends TestSuite {
 
         "F = Either[List[String], +*]]" - {
 
-          (Left(1): Either[Int, Int]).transformIntoF[E, Either[String, String]] ==>
+          (Left(1): Either[Int, Int])
+            .transformIntoF[E, Either[String, String]] ==>
             Right(Left("1"))
-          (Right(1): Either[Int, Int]).transformIntoF[E, Either[String, String]] ==>
+          (Right(1): Either[Int, Int])
+            .transformIntoF[E, Either[String, String]] ==>
             Right(Right("1"))
           // Left(1).transformIntoF[E, Either[String, String]] ==> Right(Left("1"))
           // Right(1).transformIntoF[E, Either[String, String]] ==> Right(Right("1"))
@@ -434,15 +589,19 @@ object TransformerDslFSpec extends TestSuite {
         "F = Option" - {
           given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
 
-          (Left("1"): Either[String, String]).transformIntoF[Option, Either[Int, Int]] ==> Some(Left(1))
-          (Right("1"): Either[String, String]).transformIntoF[Option, Either[Int, Int]] ==> Some(Right(1))
+          (Left("1"): Either[String, String])
+            .transformIntoF[Option, Either[Int, Int]] ==> Some(Left(1))
+          (Right("1"): Either[String, String])
+            .transformIntoF[Option, Either[Int, Int]] ==> Some(Right(1))
           // Left("1").transformIntoF[Option, Either[Int, Int]] ==> Some(Left(1))
           // Right("1").transformIntoF[Option, Either[Int, Int]] ==> Some(Right(1))
           // Left("1").transformIntoF[Option, Left[Int, Int]] ==> Some(Left(1))
           // Right("1").transformIntoF[Option, Right[Int, Int]] ==> Some(Right(1))
 
-          (Left("x"): Either[String, String]).transformIntoF[Option, Either[Int, Int]] ==> None
-          (Right("x"): Either[String, String]).transformIntoF[Option, Either[Int, Int]] ==> None
+          (Left("x"): Either[String, String])
+            .transformIntoF[Option, Either[Int, Int]] ==> None
+          (Right("x"): Either[String, String])
+            .transformIntoF[Option, Either[Int, Int]] ==> None
           // Left("x").transformIntoF[Option, Either[Int, Int]] ==> None
           // Right("x").transformIntoF[Option, Either[Int, Int]] ==> None
           // Left("x").transformIntoF[Option, Left[Int, Int]] ==> None
@@ -453,18 +612,22 @@ object TransformerDslFSpec extends TestSuite {
           given intParserEither: TransformerF[E, String, Int] =
             _.parseInt.toEither("bad int")
 
-          (Left("1"): Either[String, String]).transformIntoF[E, Either[Int, Int]] ==>
+          (Left("1"): Either[String, String])
+            .transformIntoF[E, Either[Int, Int]] ==>
             Right(Left(1))
-          (Right("1"): Either[String, String]).transformIntoF[E, Either[Int, Int]] ==>
+          (Right("1"): Either[String, String])
+            .transformIntoF[E, Either[Int, Int]] ==>
             Right(Right(1))
           // Left("1").transformIntoF[E, Either[Int, Int]] ==> Right(Left(1))
           // Right("1").transformIntoF[E, Either[Int, Int]] ==> Right(Right(1))
           // Left("1").transformIntoF[E, Either[Int, Int]] ==> Right(Left(1))
           // Right("1").transformIntoF[E, Either[Int, Int]] ==> Right(Right(1))
 
-          (Left("x"): Either[String, String]).transformIntoF[E, Either[Int, Int]] ==>
+          (Left("x"): Either[String, String])
+            .transformIntoF[E, Either[Int, Int]] ==>
             Left(List("bad int"))
-          (Right("x"): Either[String, String]).transformIntoF[E, Either[Int, Int]] ==>
+          (Right("x"): Either[String, String])
+            .transformIntoF[E, Either[Int, Int]] ==>
             Left(List("bad int"))
           // Left("x").transformIntoF[E, Either[Int, Int]] ==> Left(List("bad int"))
           // Right("x").transformIntoF[E, Either[Int, Int]] ==> Left(List("bad int"))
@@ -480,13 +643,19 @@ object TransformerDslFSpec extends TestSuite {
           given intPrinter: Transformer[Int, String] = _.toString
           given intParserOpt: TransformerF[Option, String, Int] = _.parseInt
 
-          (Left("1"): Either[String, Int]).transformIntoF[Option, Either[Int, String]] ==> Some(Left(1))
-          (Left("x"): Either[String, Int]).transformIntoF[Option, Either[Int, String]] ==> None
-          (Right(100): Either[String, Int]).transformIntoF[Option, Either[Int, String]] ==> Some(Right("100"))
+          (Left("1"): Either[String, Int])
+            .transformIntoF[Option, Either[Int, String]] ==> Some(Left(1))
+          (Left("x"): Either[String, Int])
+            .transformIntoF[Option, Either[Int, String]] ==> None
+          (Right(100): Either[String, Int])
+            .transformIntoF[Option, Either[Int, String]] ==> Some(Right("100"))
 
-          (Left(100): Either[Int, String]).transformIntoF[Option, Either[String, Int]] ==> Some(Left("100"))
-          (Right("1"): Either[Int, String]).transformIntoF[Option, Either[String, Int]] ==> Some(Right(1))
-          (Right("x"): Either[Int, String]).transformIntoF[Option, Either[String, Int]] ==> None
+          (Left(100): Either[Int, String])
+            .transformIntoF[Option, Either[String, Int]] ==> Some(Left("100"))
+          (Right("1"): Either[Int, String])
+            .transformIntoF[Option, Either[String, Int]] ==> Some(Right(1))
+          (Right("x"): Either[Int, String])
+            .transformIntoF[Option, Either[String, Int]] ==> None
         }
 
         "F = Either[List[String], +*]]" - {
@@ -495,18 +664,24 @@ object TransformerDslFSpec extends TestSuite {
           given intParserEither: TransformerF[E, String, Int] =
             _.parseInt.toEither("bad int")
 
-          (Left("1"): Either[String, Int]).transformIntoF[E, Either[Int, String]] ==>
+          (Left("1"): Either[String, Int])
+            .transformIntoF[E, Either[Int, String]] ==>
             Right(Left(1))
-          (Left("x"): Either[String, Int]).transformIntoF[E, Either[Int, String]] ==>
+          (Left("x"): Either[String, Int])
+            .transformIntoF[E, Either[Int, String]] ==>
             Left(List("bad int"))
-          (Right(100): Either[String, Int]).transformIntoF[E, Either[Int, String]] ==>
+          (Right(100): Either[String, Int])
+            .transformIntoF[E, Either[Int, String]] ==>
             Right(Right("100"))
 
-          (Left(100): Either[Int, String]).transformIntoF[E, Either[String, Int]] ==>
+          (Left(100): Either[Int, String])
+            .transformIntoF[E, Either[String, Int]] ==>
             Right(Left("100"))
-          (Right("1"): Either[Int, String]).transformIntoF[E, Either[String, Int]] ==>
+          (Right("1"): Either[Int, String])
+            .transformIntoF[E, Either[String, Int]] ==>
             Right(Right(1))
-          (Right("x"): Either[Int, String]).transformIntoF[E, Either[String, Int]] ==>
+          (Right("x"): Either[Int, String])
+            .transformIntoF[E, Either[String, Int]] ==>
             Left(List("bad int"))
         }
       }
@@ -526,11 +701,17 @@ object TransformerDslFSpec extends TestSuite {
           (short.Zero: short.NumScale[Int, Nothing])
             .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Zero)
           (short.Million(4): short.NumScale[Int, Nothing])
-            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Million("4"))
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(
+            long.Million("4")
+          )
           (short.Billion(2): short.NumScale[Int, Nothing])
-            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Milliard("2"))
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(
+            long.Milliard("2")
+          )
           (short.Trillion(100): short.NumScale[Int, Nothing])
-            .transformIntoF[Option, long.NumScale[String]] ==> Some(long.Billion("100"))
+            .transformIntoF[Option, long.NumScale[String]] ==> Some(
+            long.Billion("100")
+          )
         }
 
         "F = Either[List[String], +*]]" - {
@@ -539,11 +720,17 @@ object TransformerDslFSpec extends TestSuite {
           (short.Zero: short.NumScale[Int, Nothing])
             .transformIntoF[E, long.NumScale[String]] ==> Right(long.Zero)
           (short.Million(4): short.NumScale[Int, Nothing])
-            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Million("4"))
+            .transformIntoF[E, long.NumScale[String]] ==> Right(
+            long.Million("4")
+          )
           (short.Billion(2): short.NumScale[Int, Nothing])
-            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Milliard("2"))
+            .transformIntoF[E, long.NumScale[String]] ==> Right(
+            long.Milliard("2")
+          )
           (short.Trillion(100): short.NumScale[Int, Nothing])
-            .transformIntoF[E, long.NumScale[String]] ==> Right(long.Billion("100"))
+            .transformIntoF[E, long.NumScale[String]] ==> Right(
+            long.Billion("100")
+          )
         }
       }
 
@@ -557,11 +744,17 @@ object TransformerDslFSpec extends TestSuite {
           (short.Zero: short.NumScale[String, Nothing])
             .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Zero)
           (short.Million("4"): short.NumScale[String, Nothing])
-            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Million(4))
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(
+            long.Million(4)
+          )
           (short.Billion("2"): short.NumScale[String, Nothing])
-            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Milliard(2))
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(
+            long.Milliard(2)
+          )
           (short.Trillion("100"): short.NumScale[String, Nothing])
-            .transformIntoF[Option, long.NumScale[Int]] ==> Some(long.Billion(100))
+            .transformIntoF[Option, long.NumScale[Int]] ==> Some(
+            long.Billion(100)
+          )
 
           (short.Million("x"): short.NumScale[String, Nothing])
             .transformIntoF[Option, long.NumScale[Int]] ==> None
@@ -593,6 +786,57 @@ object TransformerDslFSpec extends TestSuite {
           (short.Trillion("x"): short.NumScale[String, Nothing])
             .transformIntoF[E, long.NumScale[Int]] ==> Left(List("bad int"))
         }
+      }
+    }
+
+    "support conversion from java beans" - {
+      import io.scalaland.chimney.example.*
+
+      val bean = new JavaBean
+      bean.setId(42)
+      bean.setName(null)
+
+      "converting directly with nulls" - {
+
+        bean.intoF[Option, ScalaBean].enableBeanGetters.transform ==> Some(ScalaBean(42, null))
+        bean
+          .intoF[[t] =>> Either[String, t], ScalaBean]
+          .enableBeanGetters
+          .transform ==> Right(ScalaBean(42, null))
+      }
+
+      "converting nulls to Option.None if possible" - {
+        bean.intoF[Option, ScalaBeanOpt].enableBeanGetters.transform ==> Some(
+          ScalaBeanOpt(Some(42), None)
+        )
+      }
+
+      val javaInput = new java.util.ArrayList[Int]()
+      javaInput.add(1)
+      javaInput.add(11)
+
+      "converting nested java beans to scala classes" - {
+        import scala.jdk.CollectionConverters._
+        val nestingBean = new NestedBean()
+        val bean = new JavaBean
+        bean.setId(42)
+        bean.setName(null)
+
+        nestingBean.setIds(javaInput.asInstanceOf)
+        nestingBean.setNested(bean)
+
+        nestingBean
+          .intoF[Option, NestedScalaBean]
+          .enableBeanGetters
+          .withFieldComputed(_.ids, _.getIds.asScala.toList)
+          .transform ==>
+          Some(
+            NestedScalaBean(
+              List(1, 11),
+              ScalaBeanOpt(Some(42), None)
+            )
+          )
+
       }
     }
   }
